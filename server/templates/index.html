@@ -10,30 +10,32 @@
     <section id="home-main" data-component="homepage">
         <section id="section-hero" data-section="hero">
             <header id="hero-header" data-role="section-header">
-                <h1 id="heading-hero">Welcome to {{ app_name }}</h1>
+                <h1 id="heading-hero">The Production Networking Revolution</h1>
                 <p data-role="subtitle">
-                    A free, open-source platform connecting filmmakers,
-                    creatives,
-                                    brands, crew, and agencies.
+                    SlateHub is the free, ad-free platform where filmmakers,
+                                        actors, crew, creators, and brands unite
+                    to turn ideas into
+                                        stories—powered by smart search and
+                    verified connections.
                 </p>
             </header>
             <nav
-            id="hero-actions"
-            data-role="hero-actions"
-            aria-label="Get started"
-        >
+                    id="hero-actions"
+                    data-role="hero-actions"
+                    aria-label="Get started"
+                >
                 <a
-                href="/signup"
-                id="link-hero-signup"
-                role="button"
-                data-type="primary"
-            >Get Started</a>
+                        href="/signup"
+                        id="link-hero-signup"
+                        role="button"
+                        data-type="primary"
+                    >Create Account</a>
                 <a
-                href="/about"
-                id="link-hero-about"
-                role="button"
-                data-type="secondary"
-            >Learn More</a>
+                        href="/about"
+                        id="link-hero-about"
+                        role="button"
+                        data-type="secondary"
+                    >Learn More</a>
             </nav>
         </section>
         <section id="section-features" data-section="features">
@@ -42,45 +44,61 @@
             </header>
             <div id="features-tabs" data-component="tabs">
                 <nav
-                id="nav-features-tabs"
-                role="tablist"
-                aria-label="Feature categories"
-            >
+                        id="nav-features-tabs"
+                        role="tablist"
+                        aria-label="Feature categories"
+                    >
                     <button
-                    role="tab"
-                    id="tab-networking"
-                    aria-selected="true"
-                    aria-controls="panel-networking"
-                    data-tab="networking"
-                >Networking</button>
+                            role="tab"
+                            id="tab-networking"
+                            aria-selected="true"
+                            aria-controls="panel-networking"
+                            data-tab="networking"
+                        >Networking</button>
                     <button
-                    role="tab"
-                    id="tab-projects"
-                    aria-selected="false"
-                    aria-controls="panel-projects"
-                    data-tab="projects"
-                >Project Management</button>
+                            role="tab"
+                            id="tab-projects"
+                            aria-selected="false"
+                            aria-controls="panel-projects"
+                            data-tab="projects"
+                        >Project Management</button>
                     <button
-                    role="tab"
-                    id="tab-search"
-                    aria-selected="false"
-                    aria-controls="panel-search"
-                    data-tab="search"
-                >Semantic Search</button>
+                            role="tab"
+                            id="tab-search"
+                            aria-selected="false"
+                            aria-controls="panel-search"
+                            data-tab="search"
+                        >Semantic Search</button>
                 </nav>
                 <div
-                role="tabpanel"
-                id="panel-networking"
-                aria-labelledby="tab-networking"
-                data-panel="networking"
-            >
+                        role="tabpanel"
+                        id="panel-networking"
+                        aria-labelledby="tab-networking"
+                        data-panel="networking"
+                    >
                     <h3 id="heading-networking">Professional Networking</h3>
                     <p data-role="description">
                         Connect with industry professionals, build your network,
-                        and
-                                            discover opportunities in the TV,
-                        film, and content
-                                            industries.
+                        
+                        
+                                                and
+                        
+                        
+                                                discover
+                        
+                        
+                                                opportunities in the TV,
+                        
+                        
+                                                film,
+                        
+                                                and
+                        
+                        content
+                        
+                        
+                        
+                        industries.
                     </p>
                     <ul data-role="feature-list">
                         <li>
@@ -91,16 +109,27 @@
                     </ul>
                 </div>
                 <div
-                role="tabpanel"
-                id="panel-projects"
-                aria-labelledby="tab-projects"
-                data-panel="projects"
-                hidden
-            >
+                        role="tabpanel"
+                        id="panel-projects"
+                        aria-labelledby="tab-projects"
+                        data-panel="projects"
+                        hidden
+                    >
                     <h3 id="heading-projects-feature">Project Management</h3>
                     <p data-role="description">
                         Manage your creative projects with tools designed
-                                            specifically for film and TV
+                        
+                        
+                        
+                        specifically
+                        
+                        
+                        for film
+                        
+                                                and TV
+                        
+                        
+                        
                         production.
                     </p>
                     <ul data-role="feature-list">
@@ -110,16 +139,23 @@
                     </ul>
                 </div>
                 <div
-                role="tabpanel"
-                id="panel-search"
-                aria-labelledby="tab-search"
-                data-panel="search"
-                hidden
-            >
+                        role="tabpanel"
+                        id="panel-search"
+                        aria-labelledby="tab-search"
+                        data-panel="search"
+                        hidden
+                    >
                     <h3 id="heading-search-feature">AI-Powered Search</h3>
                     <p data-role="description">
                         Find the perfect collaborators with semantic search and
-                                            AI-assisted matching.
+                        
+                        
+                                                                        AI-
+                        
+                        assisted
+                        
+                        
+                        matching.
                     </p>
                     <ul data-role="feature-list">
                         <li>
@@ -139,26 +175,26 @@
             </header>
             <div id="stats-grid" data-layout="grid" data-role="stats-container">
                 <article
-                id="stat-productions"
-                data-component="stat-card"
-                data-stat="productions"
-            >
+                        id="stat-productions"
+                        data-component="stat-card"
+                        data-stat="productions"
+                    >
                     <data value="{{ production_count }}" data-role="stat-value">{{ production_count }}</data>
                     <label id="label-stat-productions" data-role="stat-label">Active Productions</label>
                 </article>
                 <article
-                id="stat-users"
-                data-component="stat-card"
-                data-stat="users"
-            >
+                        id="stat-users"
+                        data-component="stat-card"
+                        data-stat="users"
+                    >
                     <data value="{{ user_count }}" data-role="stat-value">{{ user_count }}</data>
                     <label id="label-stat-users" data-role="stat-label">Creative Professionals</label>
                 </article>
                 <article
-                id="stat-connections"
-                data-component="stat-card"
-                data-stat="connections"
-            >
+                        id="stat-connections"
+                        data-component="stat-card"
+                        data-stat="connections"
+                    >
                     <data value="{{ connection_count }}" data-role="stat-value">{{ connection_count }}</data>
                     <label id="label-stat-connections" data-role="stat-label">Connections Made</label>
                 </article>
@@ -170,11 +206,11 @@
                     <h2 id="heading-activity">Recent Activity</h2>
                 </header>
                 <ul
-            id="activity-feed"
-            role="feed"
-            aria-label="Recent platform activity"
-            data-component="activity-feed"
-        >
+                    id="activity-feed"
+                    role="feed"
+                    aria-label="Recent platform activity"
+                    data-component="activity-feed"
+                >
                     {% for activity in activities %}
                         <li id="activity-{{ loop.index }}" data-role="activity-item">
                             <strong data-role="activity-user">{{ activity.user }}</strong>
@@ -190,36 +226,38 @@
                 <h2 id="heading-cta">Ready to Join the Community?</h2>
                 <p data-role="subtitle">
                     Start connecting with creative professionals and bring your
-                                    projects to life.
+                    
+                    
+                                        projects to life.
                 </p>
             </header>
             <nav
-            id="cta-actions"
-            data-role="cta-actions"
-            aria-label="Sign up options"
-        >
+                    id="cta-actions"
+                    data-role="cta-actions"
+                    aria-label="Sign up options"
+                >
                 <a
-                href="/signup"
-                id="link-cta-signup"
-                role="button"
-                data-type="primary"
-            >Create Free Account</a>
+                        href="/signup"
+                        id="link-cta-signup"
+                        role="button"
+                        data-type="primary"
+                    >Create Free Account</a>
                 <a
-                href="/demo"
-                id="link-cta-demo"
-                role="button"
-                data-type="secondary"
-            >Watch Demo</a>
+                        href="/demo"
+                        id="link-cta-demo"
+                        role="button"
+                        data-type="secondary"
+                    >Watch Demo</a>
             </nav>
         </section>
     </section>
     <script>
-    // Tab functionality
-    document.addEventListener("DOMContentLoaded", function () {
-        const tabs = document.querySelectorAll('[role="tab"]');
-        const panels = document.querySelectorAll('[role="tabpanel"]');
+            // Tab functionality
+            document.addEventListener("DOMContentLoaded", function () {
+                const tabs = document.querySelectorAll('[role="tab"]');
+                const panels = document.querySelectorAll('[role="tabpanel"]');
 
-        tabs.forEach((tab) => {
+                tabs.forEach((tab) => {
             tab.addEventListener("click", function () {
                 // Deactivate all tabs and panels
                 tabs.forEach((t) => t.setAttribute("aria-selected", "false"));

@@ -7,92 +7,19 @@
    FONT DEFINITIONS
    ======================================== */
 
-/* Denton XCondensed Test Fonts */
-@font-face {
-    font-family: "Denton XCondensed Test";
-    font-weight: 100;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/Denton XCondensed Test/DentonXCondensedTest-Thin.otf")
-        format("opentype");
-}
-@font-face {
-    font-family: "Denton XCondensed Test";
-    font-weight: 300;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/Denton XCondensed Test/DentonXCondensedTest-Light.otf")
-        format("opentype");
-}
-@font-face {
-    font-family: "Denton XCondensed Test";
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/Denton XCondensed Test/DentonXCondensedTest-Regular.otf")
-        format("opentype");
-}
-@font-face {
-    font-family: "Denton XCondensed Test";
-    font-weight: 500;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/Denton XCondensed Test/DentonXCondensedTest-Medium.otf")
-        format("opentype");
-}
-@font-face {
-    font-family: "Denton XCondensed Test";
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/Denton XCondensed Test/DentonXCondensedTest-Bold.otf")
-        format("opentype");
-}
-@font-face {
-    font-family: "Denton XCondensed Test";
-    font-weight: 800;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/Denton XCondensed Test/DentonXCondensedTest-ExtraBold.otf")
-        format("opentype");
-}
-@font-face {
-    font-family: "Denton XCondensed Test";
-    font-weight: 900;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/Denton XCondensed Test/DentonXCondensedTest-Black.otf")
-        format("opentype");
-}
-
-/* Helvetica Now Display Fonts */
-@font-face {
-    font-family: "Helvetica Now Display";
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/helveticanowtext-bold-demo.ttf") format("truetype");
-}
-@font-face {
-    font-family: "Helvetica Now Display";
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/helveticanowtext-bold-demo.ttf") format("truetype");
-}
-@font-face {
-    font-family: "Helvetica Now Display";
-    font-weight: 900;
-    font-style: normal;
-    font-display: swap;
-    src: url("/static/fonts/helveticanowtext-black-demo.ttf") format("truetype");
-}
-
 /* Onsite SemiMono TRIAL Font */
 @font-face {
     font-family: "Onsite SemiMono TRIAL";
     src: url("/static/fonts/OnsiteSemiMonoTRIAL-Regular.otf") format("opentype");
     font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Onsite Condensed TRIAL";
+    src: url("/static/fonts/OnsiteCondensedTRIAL-Bold.otf") format("opentype");
+    font-weight: 700;
     font-style: normal;
     font-display: swap;
 }
@@ -104,15 +31,15 @@
 :root {
     /* Colors */
     --color-bg-primary: #171717;
-    --color-bg-secondary: #e5e7db;
-    --color-bg-tertiary: #f2f3ed;
-    --color-bg-white: #ffffff;
-    --color-bg-dark: #2a2a2a;
+    --color-bg-secondary: #d6d8ca;
+    --color-bg-tertiary: #f2e8e7;
+    --color-bg-white: #d6d8ca;
+    --color-bg-dark: #171717;
 
     --color-text-primary: #d6d8ca;
-    --color-text-secondary: #5a5a5a;
+    --color-text-secondary: #171717;
     --color-text-tertiary: #8a8a8a;
-    --color-text-light: #ffffff;
+    --color-text-light: #d6d8ca;
     --color-text-muted: #9ca39e;
 
     --color-accent: #eb5437;
@@ -135,9 +62,9 @@
 
     /* Typography */
     --font-display:
-        "Denton XCondensed Test", "Helvetica Neue", Arial, sans-serif;
-    --font-body: "Helvetica Now Display", "Helvetica Neue", Arial, sans-serif;
-    --font-mono: "SF Mono", Monaco, "Courier New", monospace;
+        "Onsite SemiMono TRIAL", "Helvetica Neue", Arial, sans-serif;
+    --font-body: "Onsite SemiMono TRIAL", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Onsite SemiMono TRIAL", Monaco, "Courier New", monospace;
 
     --font-weight-regular: 400;
     --font-weight-medium: 500;
@@ -368,8 +295,7 @@ article {
    ======================================== */
 
 #site-header {
-    background: var(--color-bg-white);
-    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-bg-primary);
     box-shadow: var(--shadow-sm);
     position: sticky;
     top: 0;
@@ -414,23 +340,11 @@ article {
     font-size: 12px;
     line-height: 16px;
     text-transform: uppercase;
-    color: var(--color-bg-primary); /* Using the Crema color #D6D8CA */
+    color: var(--color-text-primary);
     opacity: 0.5;
     margin-left: var(--space-lg);
     position: relative;
     overflow: hidden;
-    text-indent: -9999px; /* Hide original text */
-}
-
-/* Replace text with formatted version using ::before */
-#brand-slogan::before,
-[data-role="brand-slogan"]::before {
-    content: "The Production\A Networking Revolution";
-    position: absolute;
-    left: 0;
-    top: 0;
-    text-indent: 0;
-    white-space: pre-line;
 }
 
 /* Nav Brand - Logo and Slogan */
@@ -1505,6 +1419,39 @@ dd {
 [data-page="home"] [data-component="hero"] h1 {
     font-size: var(--text-5xl);
     margin-bottom: var(--space-lg);
+}
+
+#section-hero {
+    min-height: 80dvh;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 2rem 1rem;
+}
+#hero-header {
+    display: grid;
+    gap: 1.5rem;
+    max-width: min(90vw, 920px);
+    width: 100%;
+    margin: 0 auto;
+}
+h1#heading-hero {
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+}
+
+p[data-role="subtitle"] {
+    color: var(--color-text-primary);
+    font-family: "Onsite Condensed TRIAL", sans-serif;
+    font-size: clamp(20px, 4.5vw, 26px);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: clamp(-0.5px, -0.15vw, -0.26px);
+    text-transform: uppercase;
+    margin: 0;
+
+    /* This is the only new line you need */
+    max-width: 36ch;
 }
 
 /* Grid Layouts */
