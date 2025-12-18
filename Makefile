@@ -45,6 +45,7 @@ help:
 	@echo ""
 	@echo "Database:"
 	@echo "  make db-init        - Initialize database schema"
+	@echo "  make db-drop        - Drop database (delete all data)"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make shell          - Open shell in server container"
@@ -161,6 +162,13 @@ db-init: wait-db
 	else \
 		echo "Warning: db/schema.surql not found. Skipping initialization."; \
 	fi
+
+db-drop:
+	@echo "⚠️  WARNING: This will delete the entire database!"
+	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]
+	@echo "Dropping database..."
+	@docker exec -i slatehub-surrealdb /surreal sql --conn http://localhost:8000 --user "$(DB_USER)" --pass "$(DB_PASS)" --ns slatehub --db main --pretty <<< "REMOVE DATABASE main;"
+	@echo "✅ Database dropped."
 
 # ============================================================================
 # Utilities

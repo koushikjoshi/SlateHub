@@ -700,7 +700,7 @@ ul[data-role="dropdown-menu"] a {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: auto;
     padding: 0;
-    color: var(--color-text-light);
+    color: var(--color-text-muted);
     position: relative;
 }
 
@@ -958,7 +958,7 @@ legend {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: var(--space-md);
-    color: var(--color-text-primary);
+    color: var(--color-text-tertiary);
 }
 
 label {
@@ -966,7 +966,7 @@ label {
     font-size: var(--text-sm);
     font-weight: var(--font-weight-medium);
     margin-bottom: var(--space-xs);
-    color: var(--color-text-primary);
+    color: var(--color-text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
@@ -986,7 +986,7 @@ select {
     padding: var(--space-sm) var(--space-md);
     font-family: var(--font-body);
     font-size: var(--text-base);
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
     background-color: var(--color-bg-white);
     border: 1px solid var(--color-border-light);
     border-radius: var(--radius-md);

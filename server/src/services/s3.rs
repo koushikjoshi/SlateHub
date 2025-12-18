@@ -27,13 +27,17 @@ impl Default for S3Config {
     fn default() -> Self {
         Self {
             endpoint: std::env::var("MINIO_ENDPOINT")
+                .or_else(|_| std::env::var("S3_ENDPOINT"))
                 .unwrap_or_else(|_| "http://localhost:9000".to_string()),
             access_key: std::env::var("MINIO_ACCESS_KEY")
-                .unwrap_or_else(|_| "slatehub".to_string()),
+                .or_else(|_| std::env::var("MINIO_ROOT_USER"))
+                .unwrap_or_else(|_| "admin".to_string()),
             secret_key: std::env::var("MINIO_SECRET_KEY")
-                .unwrap_or_else(|_| "slatehub123".to_string()),
+                .or_else(|_| std::env::var("MINIO_ROOT_PASSWORD"))
+                .unwrap_or_else(|_| "password".to_string()),
             bucket_name: std::env::var("MINIO_BUCKET")
-                .unwrap_or_else(|_| "slatehub-media".to_string()),
+                .or_else(|_| std::env::var("S3_BUCKET_NAME"))
+                .unwrap_or_else(|_| "slatehub".to_string()),
             region: std::env::var("MINIO_REGION").unwrap_or_else(|_| "us-east-1".to_string()),
         }
     }
