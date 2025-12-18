@@ -22,6 +22,13 @@
         <ul id="nav-primary" data-role="nav-primary">
             <li>
                 <a
+                    href="/search"
+                    id="link-nav-search"
+                    {% if active_page == "search" %}aria-current="page"{% endif %}
+                >Search</a>
+            </li>
+            <li>
+                <a
                     href="/people"
                     id="link-nav-people"
                     {% if active_page == "people" %}aria-current="page"{% endif %}

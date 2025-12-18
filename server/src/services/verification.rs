@@ -3,7 +3,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use surrealdb::RecordId;
 use thiserror::Error;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use crate::db::DB;
 use crate::error::Error as AppError;

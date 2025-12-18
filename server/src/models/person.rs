@@ -7,10 +7,11 @@
 use crate::auth;
 use crate::db::DB;
 use crate::error::{Error, Result};
+use crate::services::embedding::{build_person_embedding_text, generate_embedding};
 use crate::{db_span, log_error};
 use serde::{Deserialize, Serialize};
 use surrealdb::RecordId;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 // -----------------------------------------------------------------------------
 // Core Person Model
@@ -596,14 +597,51 @@ impl Person {
             }
         }
 
-        // Update the name and profile fields in the database
+        // Generate embedding for semantic search
+        let (embedding, embedding_text) = if let Some(profile) = &person.profile {
+            let embedding_text = build_person_embedding_text(
+                person.name.as_deref().unwrap_or(&person.username),
+                profile.headline.as_deref(),
+                profile.bio.as_deref(),
+                &profile.skills,
+                profile.location.as_deref(),
+                profile.age_range.as_ref().map(|r| (r.min, r.max)),
+                profile.gender.as_deref(),
+                &profile.ethnicity,
+                profile.height_mm,
+                profile.body_type.as_deref(),
+                profile.hair_color.as_deref(),
+                profile.eye_color.as_deref(),
+                &profile.languages,
+                &profile.unions,
+                &profile
+                    .experience
+                    .iter()
+                    .filter_map(|e| e.description.clone())
+                    .collect::<Vec<_>>(),
+            );
+
+            match generate_embedding(&embedding_text) {
+                Ok(emb) => (Some(emb), Some(embedding_text)),
+                Err(e) => {
+                    warn!("Failed to generate embedding for person profile: {}", e);
+                    (None, None)
+                }
+            }
+        } else {
+            (None, None)
+        };
+
+        // Update the name, profile, and embedding fields in the database
         // Use MERGE to update just these fields without affecting other fields like password
-        let query = "UPDATE $id MERGE { name: $name, profile: $profile } RETURN AFTER";
+        let query = "UPDATE $id MERGE { name: $name, profile: $profile, embedding: $embedding, embedding_text: $embedding_text } RETURN AFTER";
         let mut response = DB
             .query(query)
             .bind(("id", person.id.clone()))
             .bind(("name", person.name.clone()))
             .bind(("profile", person.profile.clone()))
+            .bind(("embedding", embedding))
+            .bind(("embedding_text", embedding_text))
             .await
             .map_err(|e| {
                 log_error!(e, "Failed to update person profile");

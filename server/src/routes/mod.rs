@@ -18,6 +18,7 @@ mod pages;
 mod productions;
 mod profile;
 mod public_profiles;
+mod search;
 
 pub fn app() -> Router {
     // Static file service
@@ -31,6 +32,8 @@ pub fn app() -> Router {
         .merge(pages::router())
         // Mount auth routes
         .merge(auth::router())
+        // Mount search routes
+        .merge(search::router())
         // Mount organizations routes
         .merge(organizations::router())
         // Mount productions routes

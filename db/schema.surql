@@ -131,6 +131,8 @@ DEFINE FIELD employees_count ON organization TYPE option<int> PERMISSIONS FULL;
 DEFINE FIELD public ON organization TYPE bool DEFAULT false PERMISSIONS FULL;  -- Whether the organization profile is public
 DEFINE FIELD created_at ON organization TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
 DEFINE FIELD updated_at ON organization TYPE datetime VALUE time::now() PERMISSIONS FULL;
+DEFINE FIELD embedding ON organization TYPE option<array<float>> PERMISSIONS FULL;  -- Vector embedding for semantic search (1024 dimensions)
+DEFINE FIELD embedding_text ON organization TYPE option<string> PERMISSIONS FULL;  -- Cached text used to generate embedding
 
 DEFINE INDEX idx_organization_slug ON organization FIELDS slug UNIQUE;
 
@@ -212,6 +214,8 @@ DEFINE FIELD profile.website ON person TYPE option<string> PERMISSIONS FULL;
 DEFINE FIELD profile.phone ON person TYPE option<string> PERMISSIONS FULL;
 DEFINE FIELD username ON person TYPE string VALUE string::lowercase($value) PERMISSIONS FOR select, update FULL, FOR create WHERE FULL;
 DEFINE FIELD name ON person TYPE option<string> PERMISSIONS FULL;  -- Optional display name
+DEFINE FIELD embedding ON person TYPE option<array<float>> PERMISSIONS FULL;  -- Vector embedding for semantic search (1024 dimensions)
+DEFINE FIELD embedding_text ON person TYPE option<string> PERMISSIONS FULL;  -- Cached text used to generate embedding
 
 DEFINE INDEX person_username_unique ON person FIELDS username UNIQUE;
 DEFINE INDEX person_email_unique ON person FIELDS email;
@@ -234,6 +238,8 @@ DEFINE FIELD description ON production TYPE option<string> PERMISSIONS FULL;
 DEFINE FIELD location ON production TYPE option<string> PERMISSIONS FULL;  -- For job-related search
 DEFINE FIELD created_at ON production TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
 DEFINE FIELD updated_at ON production TYPE datetime VALUE time::now() PERMISSIONS FULL;
+DEFINE FIELD embedding ON production TYPE option<array<float>> PERMISSIONS FULL;  -- Vector embedding for semantic search (1024 dimensions)
+DEFINE FIELD embedding_text ON production TYPE option<string> PERMISSIONS FULL;  -- Cached text used to generate embedding
 
 -- ------------------------------
 -- TABLE: location (filming locations)
@@ -259,6 +265,8 @@ DEFINE FIELD max_capacity ON location TYPE option<int> PERMISSIONS FULL;
 DEFINE FIELD created_at ON location TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
 DEFINE FIELD updated_at ON location TYPE datetime VALUE time::now() PERMISSIONS FULL;
 DEFINE FIELD created_by ON location TYPE record<person|organization> PERMISSIONS FULL;  -- Owner
+DEFINE FIELD embedding ON location TYPE option<array<float>> PERMISSIONS FULL;  -- Vector embedding for semantic search (1024 dimensions)
+DEFINE FIELD embedding_text ON location TYPE option<string> PERMISSIONS FULL;  -- Cached text used to generate embedding
 
 -- ------------------------------
 -- TABLE: location_rate (rates for locations)

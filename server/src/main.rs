@@ -1,5 +1,6 @@
 use slatehub::config::Config;
 use slatehub::db::{DB, ensure_db_initialized};
+use slatehub::services::embedding::init_embedding_service;
 use slatehub::services::s3::init_s3;
 use surrealdb::{engine::remote::ws::Ws, opt::auth::Root};
 use tracing::{debug, error, info};
@@ -134,6 +135,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             error!("Failed to initialize S3 service: {}", e);
             // Continue without S3 - profile images won't work but app can run
             error!("Warning: Profile image uploads will not work without S3 service");
+        }
+    }
+
+    // Initialize embedding service for semantic search
+    debug!("Initializing embedding service");
+    match init_embedding_service().await {
+        Ok(_) => info!("Embedding service initialized successfully"),
+        Err(e) => {
+            error!("Failed to initialize embedding service: {}", e);
+            error!("Warning: Semantic search will not work without embedding service");
+            // Continue without embeddings - search won't work but app can run
         }
     }
 

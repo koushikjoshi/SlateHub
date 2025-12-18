@@ -1,9 +1,10 @@
 use crate::db::DB;
 use crate::error::Error;
+use crate::services::embedding::{build_location_embedding_text, generate_embedding};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use surrealdb::{RecordId, sql::Thing};
-use tracing::debug;
+use tracing::{debug, warn};
 
 /// Location entity from the database
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +103,27 @@ impl LocationModel {
 
         let creator_id = RecordId::from_str(creator_id)?;
 
+        // Generate embedding for semantic search
+        let embedding_text = build_location_embedding_text(
+            &data.name,
+            data.description.as_deref(),
+            &data.city,
+            &data.state,
+            &data.country,
+            &data.amenities.clone().unwrap_or_default(),
+            &data.restrictions.clone().unwrap_or_default(),
+            data.max_capacity,
+            data.parking_info.as_deref(),
+        );
+
+        let (embedding, embedding_text_opt) = match generate_embedding(&embedding_text) {
+            Ok(emb) => (Some(emb), Some(embedding_text)),
+            Err(e) => {
+                warn!("Failed to generate embedding for location: {}", e);
+                (None, None)
+            }
+        };
+
         // Create the location
         let query = r#"
             CREATE location CONTENT {
@@ -120,7 +142,9 @@ impl LocationModel {
                 restrictions: $restrictions,
                 parking_info: $parking_info,
                 max_capacity: $max_capacity,
-                created_by: $created_by
+                created_by: $created_by,
+                embedding: $embedding,
+                embedding_text: $embedding_text
             } RETURN *;
         "#;
 
@@ -142,6 +166,8 @@ impl LocationModel {
             .bind(("parking_info", data.parking_info))
             .bind(("max_capacity", data.max_capacity))
             .bind(("created_by", creator_id))
+            .bind(("embedding", embedding))
+            .bind(("embedding_text", embedding_text_opt))
             .await
             .map_err(|e| Error::Database(format!("Failed to create location: {}", e)))?;
 
@@ -225,6 +251,9 @@ impl LocationModel {
     ) -> Result<Location, Error> {
         debug!("Updating location: {}", location_id);
 
+        // Fetch current location to merge with updates for embedding
+        let current = Self::get(location_id).await?;
+
         let mut update_fields = Vec::new();
 
         if data.name.is_some() {
@@ -276,6 +305,51 @@ impl LocationModel {
         if update_fields.is_empty() {
             return Self::get(location_id).await;
         }
+
+        // Generate embedding with merged data
+        let name = data.name.as_ref().unwrap_or(&current.name);
+        let city = data.city.as_ref().unwrap_or(&current.city);
+        let state = data.state.as_ref().unwrap_or(&current.state);
+        let country = data.country.as_ref().unwrap_or(&current.country);
+        let description = data.description.as_ref().or(current.description.as_ref());
+        let amenities = data
+            .amenities
+            .as_ref()
+            .or(current.amenities.as_ref())
+            .cloned()
+            .unwrap_or_default();
+        let restrictions = data
+            .restrictions
+            .as_ref()
+            .or(current.restrictions.as_ref())
+            .cloned()
+            .unwrap_or_default();
+        let parking_info = data.parking_info.as_ref().or(current.parking_info.as_ref());
+        let max_capacity = data.max_capacity.or(current.max_capacity);
+
+        let embedding_text = build_location_embedding_text(
+            name,
+            description.map(|s| s.as_str()),
+            city,
+            state,
+            country,
+            &amenities,
+            &restrictions,
+            max_capacity,
+            parking_info.map(|s| s.as_str()),
+        );
+
+        let (embedding, embedding_text_opt) = match generate_embedding(&embedding_text) {
+            Ok(emb) => (Some(emb), Some(embedding_text)),
+            Err(e) => {
+                warn!("Failed to generate embedding for location: {}", e);
+                (None, None)
+            }
+        };
+
+        // Add embedding fields to update
+        update_fields.push("embedding = $embedding");
+        update_fields.push("embedding_text = $embedding_text");
 
         let query = format!(
             "UPDATE $location_id SET {} RETURN *",
@@ -344,6 +418,10 @@ impl LocationModel {
         if let Some(max_capacity) = data.max_capacity {
             db_query = db_query.bind(("max_capacity", max_capacity));
         }
+
+        // Bind embedding fields
+        db_query = db_query.bind(("embedding", embedding));
+        db_query = db_query.bind(("embedding_text", embedding_text_opt));
 
         let mut result = db_query
             .await

@@ -8,6 +8,7 @@ use crate::{
     db::DB,
     error::Error,
     models::membership::{InvitationStatus, MembershipModel, MembershipRole},
+    services::embedding::{build_organization_embedding_text, generate_embedding},
 };
 
 // ============================
@@ -304,6 +305,25 @@ impl OrganizationModel {
         debug!("Updating organization: {}", id);
         let id: RecordId = RecordId::from_str(id)?;
 
+        // Generate embedding for semantic search
+        let embedding_text = build_organization_embedding_text(
+            &data.name,
+            &data.org_type,
+            data.description.as_deref(),
+            &data.services,
+            data.location.as_deref(),
+            data.founded_year,
+            data.employees_count,
+        );
+
+        let (embedding, embedding_text_opt) = match generate_embedding(&embedding_text) {
+            Ok(emb) => (Some(emb), Some(embedding_text)),
+            Err(e) => {
+                warn!("Failed to generate embedding for organization: {}", e);
+                (None, None)
+            }
+        };
+
         let _: Option<Organization> = DB
             .query(
                 "UPDATE type::thing('organization', $id) SET
@@ -317,7 +337,9 @@ impl OrganizationModel {
                     services = $services,
                     founded_year = $founded_year,
                     employees_count = $employees_count,
-                    public = $public",
+                    public = $public,
+                    embedding = $embedding,
+                    embedding_text = $embedding_text",
             )
             .bind(("id", id))
             .bind(("name", data.name))
@@ -331,6 +353,8 @@ impl OrganizationModel {
             .bind(("founded_year", data.founded_year))
             .bind(("employees_count", data.employees_count))
             .bind(("public", data.public))
+            .bind(("embedding", embedding))
+            .bind(("embedding_text", embedding_text_opt))
             .await?
             .take(0)?;
 

@@ -1,8 +1,9 @@
 use crate::db::DB;
 use crate::error::Error;
+use crate::services::embedding::{build_production_embedding_text, generate_embedding};
 use serde::{Deserialize, Serialize};
 use surrealdb::RecordId;
-use tracing::debug;
+use tracing::{debug, warn};
 
 /// Production entity from the database
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,6 +90,25 @@ impl ProductionModel {
             .await
             .map_err(|e| Error::Database(format!("Failed to start transaction: {}", e)))?;
 
+        // Generate embedding for semantic search
+        let embedding_text = build_production_embedding_text(
+            &data.title,
+            &data.production_type,
+            &data.status,
+            data.description.as_deref(),
+            data.location.as_deref(),
+            data.start_date.as_deref(),
+            data.end_date.as_deref(),
+        );
+
+        let (embedding, embedding_text_opt) = match generate_embedding(&embedding_text) {
+            Ok(emb) => (Some(emb), Some(embedding_text)),
+            Err(e) => {
+                warn!("Failed to generate embedding for production: {}", e);
+                (None, None)
+            }
+        };
+
         // Create the production
         let query = r#"
             CREATE production CONTENT {
@@ -99,7 +119,9 @@ impl ProductionModel {
                 start_date: $start_date,
                 end_date: $end_date,
                 description: $description,
-                location: $location
+                location: $location,
+                embedding: $embedding,
+                embedding_text: $embedding_text
             } RETURN *;
         "#;
 
@@ -113,6 +135,8 @@ impl ProductionModel {
             .bind(("end_date", data.end_date))
             .bind(("description", data.description))
             .bind(("location", data.location))
+            .bind(("embedding", embedding))
+            .bind(("embedding_text", embedding_text_opt))
             .await
             .map_err(|e| Error::Database(format!("Failed to create production: {}", e)))?;
 
@@ -226,6 +250,9 @@ impl ProductionModel {
     ) -> Result<Production, Error> {
         debug!("Updating production: {}", production_id);
 
+        // Fetch current production to merge with updates for embedding
+        let current = Self::get(production_id).await?;
+
         let mut update_fields = Vec::new();
 
         if data.title.is_some() {
@@ -251,6 +278,40 @@ impl ProductionModel {
         }
 
         update_fields.push("updated_at = time::now()");
+
+        // Generate embedding with merged data
+        let title = data.title.as_ref().unwrap_or(&current.title);
+        let production_type = data
+            .production_type
+            .as_ref()
+            .unwrap_or(&current.production_type);
+        let status = data.status.as_ref().unwrap_or(&current.status);
+        let description = data.description.as_ref().or(current.description.as_ref());
+        let location = data.location.as_ref().or(current.location.as_ref());
+        let start_date = data.start_date.as_ref().or(current.start_date.as_ref());
+        let end_date = data.end_date.as_ref().or(current.end_date.as_ref());
+
+        let embedding_text = build_production_embedding_text(
+            title,
+            production_type,
+            status,
+            description.map(|s| s.as_str()),
+            location.map(|s| s.as_str()),
+            start_date.map(|s| s.as_str()),
+            end_date.map(|s| s.as_str()),
+        );
+
+        let (embedding, embedding_text_opt) = match generate_embedding(&embedding_text) {
+            Ok(emb) => (Some(emb), Some(embedding_text)),
+            Err(e) => {
+                warn!("Failed to generate embedding for production: {}", e);
+                (None, None)
+            }
+        };
+
+        // Add embedding fields to update
+        update_fields.push("embedding = $embedding");
+        update_fields.push("embedding_text = $embedding_text");
 
         let query = format!(
             "UPDATE $production_id SET {} RETURN *",
@@ -282,6 +343,10 @@ impl ProductionModel {
         if let Some(location) = data.location {
             db_query = db_query.bind(("location", location));
         }
+
+        // Bind embedding fields
+        db_query = db_query.bind(("embedding", embedding));
+        db_query = db_query.bind(("embedding_text", embedding_text_opt));
 
         let mut result = db_query
             .await

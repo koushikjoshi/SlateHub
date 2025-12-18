@@ -5,7 +5,6 @@ use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
 use thiserror::Error;
-use tracing::error;
 
 #[derive(Error, Debug)]
 pub enum Error {
