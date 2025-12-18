@@ -130,9 +130,14 @@ async fn search_page(
     let query_embedding = match generate_embedding(query) {
         Ok(emb) => emb,
         Err(e) => {
-            error!("Failed to generate embedding for query: {}", e);
+            error!(
+                error = %e,
+                error_debug = ?e,
+                query = %query,
+                "Failed to generate embedding for search query - embedding service may not be initialized"
+            );
             return Err(Error::Internal(
-                "Failed to process search query".to_string(),
+                "Failed to process search query - embedding service error".to_string(),
             ));
         }
     };
@@ -190,7 +195,7 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
     let mut response = DB
         .query(
             "SELECT
-                id,
+                <string> id AS id,
                 name,
                 username,
                 profile.headline AS headline,
@@ -206,12 +211,22 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
         .bind(("query_embedding", query_embedding))
         .await
         .map_err(|e| {
-            error!("Database error searching people: {}", e);
+            error!(
+                error = %e,
+                error_debug = ?e,
+                table = "person",
+                "Database error during vector search"
+            );
             Error::Database(e.to_string())
         })?;
 
     let db_people: Vec<PersonSearchDb> = response.take(0).map_err(|e| {
-        error!("Failed to parse person search results: {}", e);
+        error!(
+            error = %e,
+            error_debug = ?e,
+            table = "person",
+            "Failed to deserialize search results"
+        );
         Error::Database(e.to_string())
     })?;
 
@@ -262,7 +277,7 @@ async fn search_organizations(
     let mut response = DB
         .query(
             "SELECT
-                id,
+                <string> id AS id,
                 name,
                 slug,
                 description,
@@ -277,12 +292,22 @@ async fn search_organizations(
         .bind(("query_embedding", query_embedding))
         .await
         .map_err(|e| {
-            error!("Database error searching organizations: {}", e);
+            error!(
+                error = %e,
+                error_debug = ?e,
+                table = "organization",
+                "Database error during vector search"
+            );
             Error::Database(e.to_string())
         })?;
 
     let db_organizations: Vec<OrganizationSearchDb> = response.take(0).map_err(|e| {
-        error!("Failed to parse organization search results: {}", e);
+        error!(
+            error = %e,
+            error_debug = ?e,
+            table = "organization",
+            "Failed to deserialize search results"
+        );
         Error::Database(e.to_string())
     })?;
 
@@ -319,7 +344,7 @@ async fn search_locations(query_embedding: Vec<f32>) -> Result<Vec<LocationSearc
     let mut response = DB
         .query(
             "SELECT
-                id,
+                <string> id AS id,
                 name,
                 address,
                 city,
@@ -334,12 +359,22 @@ async fn search_locations(query_embedding: Vec<f32>) -> Result<Vec<LocationSearc
         .bind(("query_embedding", query_embedding))
         .await
         .map_err(|e| {
-            error!("Database error searching locations: {}", e);
+            error!(
+                error = %e,
+                error_debug = ?e,
+                table = "location",
+                "Database error during vector search"
+            );
             Error::Database(e.to_string())
         })?;
 
     let db_locations: Vec<LocationSearchDb> = response.take(0).map_err(|e| {
-        error!("Failed to parse location search results: {}", e);
+        error!(
+            error = %e,
+            error_debug = ?e,
+            table = "location",
+            "Failed to deserialize search results"
+        );
         Error::Database(e.to_string())
     })?;
 
@@ -377,7 +412,7 @@ async fn search_productions(
     let mut response = DB
         .query(
             "SELECT
-                id,
+                <string> id AS id,
                 title,
                 status,
                 description,
@@ -391,12 +426,22 @@ async fn search_productions(
         .bind(("query_embedding", query_embedding))
         .await
         .map_err(|e| {
-            error!("Database error searching productions: {}", e);
+            error!(
+                error = %e,
+                error_debug = ?e,
+                table = "production",
+                "Database error during vector search"
+            );
             Error::Database(e.to_string())
         })?;
 
     let db_productions: Vec<ProductionSearchDb> = response.take(0).map_err(|e| {
-        error!("Failed to parse production search results: {}", e);
+        error!(
+            error = %e,
+            error_debug = ?e,
+            table = "production",
+            "Failed to deserialize search results"
+        );
         Error::Database(e.to_string())
     })?;
 

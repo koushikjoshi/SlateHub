@@ -45,6 +45,28 @@ pub fn format_colored_error<T: Display>(error_type: &str, message: T) -> String 
 }
 
 /// Initialize the tracing subscriber for logging
+///
+/// # Environment Variables
+///
+/// - `LOG_FORMAT`: Output format - "json", "compact", "dev" (default), or "pretty"
+/// - `RUST_LOG`: Log level filter - defaults to standard development logging
+///
+/// # Filtering for Errors Only
+///
+/// To focus on errors (useful when debugging 500s), set:
+/// ```sh
+/// RUST_LOG=warn,slatehub=error
+/// ```
+///
+/// Or for errors with HTTP context:
+/// ```sh
+/// RUST_LOG=error,tower_http=warn
+/// ```
+///
+/// For verbose debugging of a specific module:
+/// ```sh
+/// RUST_LOG=warn,slatehub::routes::search=debug
+/// ```
 pub fn init() {
     // Get log format from environment, default to "dev" for better debugging
     // Options: "json", "compact", "dev", "pretty"
@@ -131,6 +153,7 @@ pub fn init() {
         "Logging initialized with format: {} (includes file:line info for debugging)",
         log_format
     );
+    tracing::info!("Tip: Set RUST_LOG=warn,slatehub=error to focus on errors only");
 }
 
 /// Log an HTTP response with colored status code

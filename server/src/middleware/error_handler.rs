@@ -229,6 +229,8 @@ fn render_json_error(
 pub async fn error_response_middleware(req: Request, next: Next) -> Response {
     let headers = req.headers().clone();
     let path = req.uri().path().to_string();
+    let method = req.method().to_string();
+    let query = req.uri().query().map(|q| q.to_string());
     let request_id = req.request_id().map(|id| id.to_string());
 
     let response = next.run(req).await;
@@ -237,28 +239,77 @@ pub async fn error_response_middleware(req: Request, next: Next) -> Response {
     if response.status().is_client_error() || response.status().is_server_error() {
         let status = response.status();
 
-        // Log the error
+        // Extract error message from header if available (for detailed logging)
+        let error_detail = response
+            .headers()
+            .get("X-Error-Message")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("Unknown error");
+
+        // Log the error with appropriate detail level
         match status {
             StatusCode::NOT_FOUND => {
-                warn!("404 Not Found: {}", path);
+                warn!(
+                    path = %path,
+                    method = %method,
+                    request_id = ?request_id,
+                    "404 Not Found"
+                );
             }
             StatusCode::UNAUTHORIZED => {
-                warn!("401 Unauthorized: {}", path);
+                warn!(
+                    path = %path,
+                    method = %method,
+                    request_id = ?request_id,
+                    "401 Unauthorized"
+                );
             }
             StatusCode::FORBIDDEN => {
-                warn!("403 Forbidden: {}", path);
+                warn!(
+                    path = %path,
+                    method = %method,
+                    request_id = ?request_id,
+                    "403 Forbidden"
+                );
             }
             StatusCode::UNPROCESSABLE_ENTITY => {
-                warn!("422 Unprocessable Entity: {}", path);
+                warn!(
+                    path = %path,
+                    method = %method,
+                    error = %error_detail,
+                    request_id = ?request_id,
+                    "422 Unprocessable Entity"
+                );
             }
             StatusCode::BAD_REQUEST => {
-                warn!("400 Bad Request: {}", path);
+                warn!(
+                    path = %path,
+                    method = %method,
+                    error = %error_detail,
+                    request_id = ?request_id,
+                    "400 Bad Request"
+                );
             }
             _ if status.is_server_error() => {
-                error!("{} Server Error: {}", status.as_u16(), path);
+                // Enhanced logging for 500 errors - include all available context
+                error!(
+                    status = %status.as_u16(),
+                    path = %path,
+                    method = %method,
+                    query = ?query,
+                    error = %error_detail,
+                    request_id = ?request_id,
+                    "SERVER ERROR - This requires investigation"
+                );
             }
             _ => {
-                warn!("{} Client Error: {}", status.as_u16(), path);
+                warn!(
+                    status = %status.as_u16(),
+                    path = %path,
+                    method = %method,
+                    request_id = ?request_id,
+                    "Client Error"
+                );
             }
         }
 
