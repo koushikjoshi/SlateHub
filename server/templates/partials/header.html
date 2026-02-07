@@ -7,13 +7,18 @@
                 </a>
             </li>
             <li>
-                <span id="brand-slogan"data-role="brand-slogan">
+                <span id="brand-slogan" data-role="brand-slogan">
                     The Production
                     <br/>
                     Networking Revolution
                 </span>
             </li>
         </ul>
+        <button id="nav-toggle" data-role="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+            <span data-role="hamburger-line"></span>
+            <span data-role="hamburger-line"></span>
+            <span data-role="hamburger-line"></span>
+        </button>
         <ul id="nav-primary" data-role="nav-primary">
             <li>
                 <a
@@ -21,13 +26,6 @@
                     id="link-nav-people"
                     {% if active_page == "people" %}aria-current="page"{% endif %}
                 >People</a>
-            </li>
-            <li>
-                <a
-                    href="/orgs"
-                    id="link-nav-organizations"
-                    {% if active_page == "orgs" %}aria-current="page"{% endif %}
-                >Orgs</a>
             </li>
             <li>
                 <a
@@ -43,17 +41,17 @@
                     {% if active_page == "productions" %}aria-current="page"{% endif %}
                 >Productions</a>
             </li>
-            <li>
-                <a
-                    href="/about"
-                    id="link-nav-about"
-                    {% if active_page == "about" %}aria-current="page"{% endif %}
-                >About</a>
-            </li>
         </ul>
         <ul id="nav-user" data-role="nav-user">
             {% match user %}
                 {% when Some with (user) %}
+                <li>
+                    <a
+                        href="/about"
+                        id="link-nav-about"
+                        {% if active_page == "about" %}aria-current="page"{% endif %}
+                    >About</a>
+                </li>
                 <li data-component="user-menu">
                     <details id="user-menu-dropdown">
                         <summary
@@ -128,21 +126,36 @@
                 {% when None %}
                 <li>
                     <a
-                    href="/login"
-                    id="button-nav-login"
-                    role="button"
-                    data-type="primary"
-                >Login</a>
+                        href="/login"
+                        id="link-nav-login"
+                    >Login</a>
                 </li>
                 <li>
                     <a
-                    href="/signup"
-                    id="button-nav-signup"
-                    role="button"
-                    data-type="secondary"
-                >Sign Up</a>
+                        href="/about"
+                        id="link-nav-about"
+                        {% if active_page == "about" %}aria-current="page"{% endif %}
+                    >About</a>
+                </li>
+                <li>
+                    <a
+                        href="/signup"
+                        id="link-nav-signup"
+                        data-role="nav-cta"
+                    >Create Account</a>
                 </li>
             {% endmatch %}
         </ul>
     </nav>
 </header>
+<script>
+(function() {
+    var toggle = document.getElementById('nav-toggle');
+    if (toggle) {
+        toggle.addEventListener('click', function() {
+            var expanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', String(!expanded));
+        });
+    }
+})();
+</script>
