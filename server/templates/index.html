@@ -9,34 +9,26 @@
 {% block content %}
     <section id="home-main" data-component="homepage">
         <section id="section-hero" data-section="hero">
-            <header id="hero-header" data-role="section-header">
-                <h1 id="heading-hero">The Production Networking Revolution</h1>
-                <p data-role="subtitle">
-                    SlateHub is the free, ad-free platform where filmmakers,
-                                        actors, crew, creators, and brands unite
-                    to turn ideas into
-                                        stories—powered by smart search and
-                    verified connections.
-                </p>
-            </header>
-            <nav
-                    id="hero-actions"
-                    data-role="hero-actions"
-                    aria-label="Get started"
-                >
-                <a
-                        href="/signup"
-                        id="link-hero-signup"
-                        role="button"
-                        data-type="primary"
-                    >Create Account</a>
-                <a
-                        href="/about"
-                        id="link-hero-about"
-                        role="button"
-                        data-type="secondary"
-                    >Learn More</a>
-            </nav>
+            <div id="hero-content" data-role="hero-content">
+                <span id="hero-tag" data-role="hero-tag">Meet SlateHub</span>
+                <h1 id="heading-hero">The free, ad-free platform where filmmakers, actors, crew, creators, and brands unite to turn ideas into stories—powered by smart search and verified connections.</h1>
+                <nav id="hero-actions" data-role="hero-actions" aria-label="Get started">
+                    <a href="/signup" id="link-hero-signup" role="button" data-type="primary">Create Account</a>
+                    <p id="hero-note" data-role="hero-note">100% Free for creatives.<br/>For life.</p>
+                </nav>
+            </div>
+            <div id="hero-media" data-role="hero-media">
+                <img src="/static/images/hero-search.jpg" alt="Filmmaker operating cinema camera on set" id="hero-image" loading="eager" />
+                <div id="hero-search-overlay" data-component="hero-search">
+                    <p id="hero-search-heading" data-role="search-heading">Try SlateHub. Discover Talent.</p>
+                    <form id="form-hero-search" data-component="search-form">
+                        <input type="search" id="input-hero-search" name="q" placeholder='Eg. &quot;I am looking for senior 3D artists&quot;' aria-label="Search for talent" />
+                        <button type="submit" id="button-hero-search" aria-label="Search">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </section>
         <section id="section-features" data-section="features">
             <header id="features-header" data-role="section-header">
