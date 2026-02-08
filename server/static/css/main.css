@@ -357,6 +357,12 @@ article {
     margin-bottom: 0 !important;
 }
 
+ul#nav-brand,
+ul#nav-primary,
+ul#nav-user {
+    padding-left: 0;
+}
+
 #nav-brand li {
     display: flex;
     align-items: center;
@@ -1474,7 +1480,7 @@ dd {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: var(--space-4xl) var(--space-3xl);
+    padding: var(--space-4xl) 0 var(--space-4xl) var(--space-xl);
     gap: var(--space-xl);
 }
 
