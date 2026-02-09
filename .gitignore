@@ -33,3 +33,7 @@ db/test-data
 
 **/*.log
 semtest
+
+# WhatsApp bot session database
+whatsapp-bot/*.db
+whatsapp-bot/*.db-*
