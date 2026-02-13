@@ -1466,6 +1466,11 @@ dd {
     padding: 0;
 }
 
+/* Homepage sections stack flush — no gaps */
+[data-page="home"] section[data-section] {
+    margin-bottom: 0;
+}
+
 /* Hero — Two-column split layout */
 #section-hero {
     display: grid;
@@ -1647,15 +1652,508 @@ dd {
 }
 
 /* Sections below hero — contained width */
-[data-page="home"] #section-features,
 [data-page="home"] #section-stats,
 [data-page="home"] #section-activity,
 [data-page="home"] #section-cta {
-    /* max-width: var(--container-max); */
     margin-left: auto;
     margin-right: auto;
     padding-left: var(--space-lg);
     padding-right: var(--space-lg);
+}
+
+/* =========================================
+   WHY SLATEHUB SECTION
+   ========================================= */
+
+#section-why {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    padding: var(--space-4xl) var(--space-xl);
+}
+
+/* Intro — tag + heading */
+#why-intro {
+    margin-bottom: var(--space-3xl);
+}
+
+[data-role="section-tag"] {
+    display: inline-block;
+    width: fit-content;
+    padding: var(--space-xs) var(--space-lg);
+    border: 1px solid var(--color-text-secondary);
+    border-radius: var(--radius-full);
+    color: var(--color-text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: var(--space-lg);
+}
+
+#heading-why {
+    font-family: "Onsite Condensed TRIAL", sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* Features grid — 5 columns with vertical dividers */
+#why-features {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    margin-bottom: var(--space-3xl);
+}
+
+[data-component="feature-card"] {
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin-bottom: 0;
+    padding: var(--space-2xl) var(--space-xl) var(--space-2xl) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+/* Vertical divider between cards (not on the first) */
+[data-component="feature-card"] + [data-component="feature-card"] {
+    border-left: 1px solid var(--color-border-dark);
+    padding-left: var(--space-xl);
+}
+
+/* First card has no left padding */
+[data-component="feature-card"]:first-child {
+    padding-left: 0;
+}
+
+/* Feature icons */
+[data-component="feature-card"] [data-role="feature-icon"] {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    margin-bottom: var(--space-sm);
+    object-fit: contain;
+}
+
+/* Feature titles */
+[data-component="feature-card"] h3 {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* Feature descriptions */
+[data-component="feature-card"] p {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    opacity: 0.75;
+    margin: 0;
+}
+
+/* Bottom CTA row */
+[data-role="section-actions"] {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: 0;
+}
+
+#link-why-signup {
+    padding: var(--space-sm) var(--space-xl);
+    border-radius: var(--radius-full);
+    background-color: var(--color-accent);
+    color: var(--color-text-light);
+    border: 1px solid var(--color-accent);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    white-space: nowrap;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+#link-why-signup:hover {
+    background-color: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+}
+
+[data-role="section-note"] {
+    font-size: var(--text-xs);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+    opacity: 0.6;
+    margin: 0;
+}
+
+/* =========================================
+   WHO'S IT FOR SECTION
+   ========================================= */
+
+#section-who {
+    position: relative;
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-light);
+    padding: var(--space-4xl) var(--space-xl);
+    overflow: hidden;
+}
+
+/* Background image — blended with dark overlay */
+#section-who::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("/static/images/who-bg.png");
+    background-size: cover;
+    background-position: center;
+    opacity: 0.4;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* All direct children above the bg pseudo-element */
+#section-who > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Intro — narrow heading left, description mid-right */
+#section-who #who-intro {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--space-2xl);
+    align-items: start;
+    margin-bottom: var(--space-4xl);
+}
+
+/* Section tag — light border on dark bg */
+#section-who [data-role="section-tag"] {
+    border-color: var(--color-text-light);
+    color: var(--color-text-light);
+}
+
+#heading-who {
+    font-family: "Onsite Condensed TRIAL", sans-serif;
+    font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--color-text-light);
+    margin: 0;
+    max-width: 280px;
+}
+
+[data-role="intro-description"] {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.6;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-light);
+    opacity: 0.7;
+    margin: 0;
+    max-width: 420px;
+}
+
+/* Roles list */
+#who-roles {
+    margin: 0 0 var(--space-4xl) 0;
+    padding: 0;
+}
+
+[data-component="role-row"] {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    align-items: center;
+    gap: var(--space-xl);
+    padding: var(--space-lg) 0;
+    border-top: 1px solid rgba(214, 216, 202, 0.12);
+}
+
+[data-component="role-row"] dt {
+    font-family: "Onsite Condensed TRIAL", sans-serif;
+    font-size: clamp(1.75rem, 3.5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--color-text-light);
+    margin: 0;
+}
+
+[data-component="role-row"] dd {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.6;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-light);
+    opacity: 0.7;
+    margin: 0;
+    max-width: 400px;
+}
+
+/* CTA button + note — override colors for dark section */
+#section-who [data-role="section-actions"] {
+    margin-top: var(--space-2xl);
+}
+
+#link-who-signup {
+    padding: var(--space-sm) var(--space-xl);
+    border-radius: var(--radius-full);
+    background-color: var(--color-accent);
+    color: var(--color-text-light);
+    border: 1px solid var(--color-accent);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    white-space: nowrap;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+#link-who-signup:hover {
+    background-color: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+}
+
+#section-who [data-role="section-note"] {
+    color: var(--color-text-light);
+    opacity: 0.5;
+}
+
+/* =========================================
+   WHAT'S NEXT / ROADMAP SECTION
+   ========================================= */
+
+#section-roadmap {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    padding: var(--space-4xl) var(--space-xl);
+}
+
+/* Intro — tag + heading */
+#section-roadmap #roadmap-intro {
+    margin-bottom: var(--space-4xl);
+}
+
+#heading-roadmap {
+    font-family: "Onsite Condensed TRIAL", sans-serif;
+    font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin: 0;
+    max-width: 380px;
+}
+
+/* 3-column grid: Phase 01 | Phase 02 | CTA */
+#roadmap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--color-text-secondary);
+}
+
+/* Phase cards — reset global article styles */
+[data-component="phase-card"] {
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin-bottom: 0;
+}
+
+/* Phase cards + CTA share the same divider pattern */
+[data-component="phase-card"],
+[data-role="phase-cta"] {
+    padding: var(--space-lg) var(--space-xl) var(--space-lg) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+/* Vertical dividers on 2nd and 3rd columns */
+[data-component="phase-card"] + [data-component="phase-card"],
+[data-component="phase-card"] + [data-role="phase-cta"],
+[data-role="phase-cta"] {
+    border-left: 1px solid var(--color-border-dark);
+    padding-left: var(--space-xl);
+}
+
+/* First item has no left border */
+[data-component="phase-card"]:first-child {
+    border-left: none;
+    padding-left: 0;
+}
+
+/* Phase labels — bold italic uppercase */
+[data-role="phase-label"] {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* Phase descriptions — regular sentence case */
+[data-component="phase-card"] p {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+    margin: 0;
+}
+
+/* CTA heading — bold uppercase */
+[data-role="cta-heading"] {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    line-height: 1.5;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* Dark pill button (black, not accent) */
+#link-roadmap-signup {
+    padding: var(--space-sm) var(--space-xl);
+    border-radius: var(--radius-full);
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-light);
+    border: 1px solid var(--color-bg-dark);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    white-space: nowrap;
+    transition:
+        background-color var(--transition-fast),
+        opacity var(--transition-fast);
+}
+
+#link-roadmap-signup:hover {
+    opacity: 0.85;
+}
+
+/* Roadmap section note color override */
+#section-roadmap [data-role="section-note"] {
+    color: var(--color-text-secondary);
+}
+
+/* =========================================
+   TESTIMONIALS SECTION
+   ========================================= */
+
+#section-testimonials {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    padding: var(--space-4xl) var(--space-xl);
+}
+
+/* Heading — full-width condensed bold */
+#heading-testimonials {
+    font-family: "Onsite Condensed TRIAL", sans-serif;
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-4xl) 0;
+    max-width: 820px;
+}
+
+/* Testimonial grid — each takes 1/3 width */
+#testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3xl);
+}
+
+/* Each testimonial — avatar left, content right */
+[data-component="testimonial"] {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    quotes: none;
+}
+
+/* Circular avatar */
+[data-role="testimonial-avatar"] {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* Quote text */
+[data-role="testimonial-content"] p {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-sm) 0;
+}
+
+/* Handle */
+[data-role="testimonial-handle"] {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--color-text-secondary);
+    font-style: normal;
 }
 
 /* Hero responsive */
@@ -1686,6 +2184,127 @@ dd {
 
     [data-component="hero-search"] {
         width: 90%;
+    }
+
+    /* Why SlateHub — responsive */
+    #section-why {
+        padding: var(--space-3xl) var(--space-lg);
+    }
+
+    #heading-why {
+        font-size: clamp(1.75rem, 8vw, 2.5rem);
+    }
+
+    #why-features {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0;
+    }
+
+    [data-component="feature-card"] {
+        padding: var(--space-lg) var(--space-md) var(--space-lg) 0;
+    }
+
+    /* Reset divider logic for 2-col: only odd items (left col) have no left border */
+    [data-component="feature-card"] + [data-component="feature-card"] {
+        padding-left: var(--space-md);
+    }
+
+    /* 2-col: items in left column (1st, 3rd, 5th) get no left border */
+    [data-component="feature-card"]:nth-child(odd) {
+        border-left: none;
+        padding-left: 0;
+    }
+
+    /* All cards get a top border except the first two */
+    [data-component="feature-card"]:nth-child(n+3) {
+        border-top: 1px solid var(--color-border-dark);
+    }
+
+    [data-role="section-actions"] {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    /* Who's It For — responsive */
+    #section-who {
+        padding: var(--space-3xl) var(--space-lg);
+    }
+
+    #section-who #who-intro {
+        grid-template-columns: 1fr;
+        gap: var(--space-xl);
+    }
+
+    #heading-who {
+        font-size: clamp(1.5rem, 7vw, 2rem);
+        max-width: none;
+    }
+
+    [data-component="role-row"] {
+        grid-template-columns: 1fr;
+        gap: var(--space-sm);
+    }
+
+    [data-component="role-row"] dt {
+        font-size: clamp(1.25rem, 5vw, 1.75rem);
+    }
+
+    /* What's Next — responsive */
+    #section-roadmap {
+        padding: var(--space-3xl) var(--space-lg);
+    }
+
+    #heading-roadmap {
+        max-width: none;
+    }
+
+    #roadmap-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    [data-component="phase-card"],
+    [data-role="phase-cta"] {
+        padding: var(--space-lg) 0;
+    }
+
+    [data-component="phase-card"] + [data-component="phase-card"],
+    [data-component="phase-card"] + [data-role="phase-cta"],
+    [data-role="phase-cta"] {
+        border-left: none;
+        border-top: 1px solid var(--color-border-dark);
+        padding-left: 0;
+    }
+
+    [data-component="phase-card"]:first-child {
+        border-top: none;
+    }
+
+    /* Testimonials — responsive */
+    #section-testimonials {
+        padding: var(--space-3xl) var(--space-lg);
+    }
+
+    #testimonials-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-2xl);
+    }
+}
+
+@media (max-width: 480px) {
+    #why-features {
+        grid-template-columns: 1fr;
+    }
+
+    [data-component="feature-card"],
+    [data-component="feature-card"] + [data-component="feature-card"] {
+        padding: var(--space-lg) 0;
+        padding-left: 0;
+        border-left: none;
+    }
+
+    [data-component="feature-card"]:nth-child(n+2) {
+        border-top: 1px solid var(--color-border-dark);
     }
 }
 
