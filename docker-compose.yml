@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
     slatehub:
         build:
@@ -15,7 +17,7 @@ services:
             - LOG_FORMAT=${LOG_FORMAT:-pretty}
             # Database
             - DATABASE_URL=${DATABASE_URL:-}
-            - DB_HOST=${DB_HOST:-surrealdb}
+            - DB_HOST=surrealdb
             - DB_PORT=${DB_PORT:-8000}
             - DB_USERNAME=${DB_USER:-root}
             - DB_PASSWORD=${DB_PASS:-root}
@@ -36,8 +38,10 @@ services:
             - MAILJET_FROM_EMAIL=${MAILJET_FROM_EMAIL:-}
             - MAILJET_FROM_NAME=${MAILJET_FROM_NAME:-}
         depends_on:
-            - surrealdb
-            - minio
+            surrealdb:
+                condition: service_healthy
+            minio:
+                condition: service_healthy
 
     surrealdb:
         image: surrealdb/surrealdb:latest
@@ -47,9 +51,14 @@ services:
         ports:
             - "${BIND_IP:-127.0.0.1}:${DB_PORT:-8000}:8000"
         volumes:
-            # Use local bind mount for easier backup/access
             - ./db/data:/data
         command: start --log info --user ${DB_USER:-root} --pass ${DB_PASS:-root} rocksdb://data/database.db
+        healthcheck:
+            test: ["CMD", "surreal", "isready"]
+            interval: 10s
+            timeout: 5s
+            retries: 15
+            start_period: 20s
 
     minio:
         image: minio/minio:latest
@@ -59,9 +68,23 @@ services:
             - "${BIND_IP:-127.0.0.1}:9000:9000"
             - "${BIND_IP:-127.0.0.1}:9001:9001"
         volumes:
-            # Use local bind mount for easier backup/access
             - ./db/files:/data
         environment:
             - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
             - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-password}
         command: server /data --console-address ":9001"
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "timeout 5s bash -c '</dev/tcp/127.0.0.1/9000' || exit 1",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 8
+            start_period: 15s
+
+networks:
+    default:
+        driver: overlay
+        attachable: true
