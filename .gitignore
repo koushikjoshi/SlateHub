@@ -37,3 +37,4 @@ semtest
 # WhatsApp bot session database
 whatsapp-bot/*.db
 whatsapp-bot/*.db-*
+**/.fastembed_cache/
