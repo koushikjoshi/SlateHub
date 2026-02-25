@@ -38,3 +38,5 @@ semtest
 whatsapp-bot/*.db
 whatsapp-bot/*.db-*
 **/.fastembed_cache/
+
+.claude
