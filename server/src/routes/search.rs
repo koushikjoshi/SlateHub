@@ -190,7 +190,7 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
         location: Option<String>,
         skills: Vec<String>,
         avatar_url: Option<String>,
-        score: f32,
+        dist: f32,
     }
 
     let mut response = DB
@@ -203,10 +203,10 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
                 profile.location AS location,
                 profile.skills AS skills,
                 profile.avatar AS avatar_url,
-                vector::similarity::cosine(embedding, $query_embedding) AS score
+                vector::distance::knn() AS dist
             FROM person
             WHERE embedding <|10|> $query_embedding
-            ORDER BY score DESC",
+            ORDER BY dist",
         )
         .bind(("query_embedding", query_embedding))
         .await
@@ -231,6 +231,7 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
     })?;
 
     // Convert to display results with score as percentage
+    // Cosine distance: 0 = identical, 2 = opposite. Convert to similarity: 1 - dist
     let people: Vec<PersonSearchResult> = db_people
         .into_iter()
         .map(|p| {
@@ -241,6 +242,7 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
                 .take(2)
                 .collect::<String>()
                 .to_uppercase();
+            let similarity = (1.0 - p.dist).max(0.0);
 
             PersonSearchResult {
                 id: p.id,
@@ -251,7 +253,7 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
                 skills: p.skills,
                 avatar_url: p.avatar_url,
                 initials,
-                score: (p.score * 100.0).round() as i32,
+                score: (similarity * 100.0).round() as i32,
             }
         })
         .filter(|p| p.score >= 50)
@@ -271,7 +273,7 @@ async fn search_organizations(
         description: Option<String>,
         location: Option<String>,
         logo: Option<String>,
-        score: f32,
+        dist: f32,
     }
 
     let mut response = DB
@@ -283,10 +285,10 @@ async fn search_organizations(
                 description,
                 location,
                 logo,
-                vector::similarity::cosine(embedding, $query_embedding) AS score
+                vector::distance::knn() AS dist
             FROM organization
             WHERE embedding <|10|> $query_embedding
-            ORDER BY score DESC",
+            ORDER BY dist",
         )
         .bind(("query_embedding", query_embedding))
         .await
@@ -313,14 +315,17 @@ async fn search_organizations(
     // Convert to display results with score as percentage
     let organizations: Vec<OrganizationSearchResult> = db_organizations
         .into_iter()
-        .map(|o| OrganizationSearchResult {
-            id: o.id,
-            name: o.name,
-            slug: o.slug,
-            description: o.description,
-            location: o.location,
-            logo: o.logo,
-            score: (o.score * 100.0).round() as i32,
+        .map(|o| {
+            let similarity = (1.0 - o.dist).max(0.0);
+            OrganizationSearchResult {
+                id: o.id,
+                name: o.name,
+                slug: o.slug,
+                description: o.description,
+                location: o.location,
+                logo: o.logo,
+                score: (similarity * 100.0).round() as i32,
+            }
         })
         .filter(|o| o.score >= 50)
         .collect();
@@ -337,7 +342,8 @@ async fn search_locations(query_embedding: Vec<f32>) -> Result<Vec<LocationSearc
         city: String,
         state: String,
         description: Option<String>,
-        score: f32,
+        is_public: bool,
+        dist: f32,
     }
 
     let mut response = DB
@@ -349,10 +355,11 @@ async fn search_locations(query_embedding: Vec<f32>) -> Result<Vec<LocationSearc
                 city,
                 state,
                 description,
-                vector::similarity::cosine(embedding, $query_embedding) AS score
+                is_public,
+                vector::distance::knn() AS dist
             FROM location
-            WHERE embedding <|10|> $query_embedding AND is_public = true
-            ORDER BY score DESC",
+            WHERE embedding <|10|> $query_embedding
+            ORDER BY dist",
         )
         .bind(("query_embedding", query_embedding))
         .await
@@ -377,16 +384,21 @@ async fn search_locations(query_embedding: Vec<f32>) -> Result<Vec<LocationSearc
     })?;
 
     // Convert to display results with score as percentage
+    // Filter is_public in Rust since KNN can't be combined with other WHERE conditions
     let locations: Vec<LocationSearchResult> = db_locations
         .into_iter()
-        .map(|l| LocationSearchResult {
-            id: l.id,
-            name: l.name,
-            address: l.address,
-            city: l.city,
-            state: l.state,
-            description: l.description,
-            score: (l.score * 100.0).round() as i32,
+        .filter(|l| l.is_public)
+        .map(|l| {
+            let similarity = (1.0 - l.dist).max(0.0);
+            LocationSearchResult {
+                id: l.id,
+                name: l.name,
+                address: l.address,
+                city: l.city,
+                state: l.state,
+                description: l.description,
+                score: (similarity * 100.0).round() as i32,
+            }
         })
         .filter(|l| l.score >= 50)
         .collect();
@@ -404,7 +416,7 @@ async fn search_productions(
         status: String,
         description: Option<String>,
         location: Option<String>,
-        score: f32,
+        dist: f32,
     }
 
     let mut response = DB
@@ -415,10 +427,10 @@ async fn search_productions(
                 status,
                 description,
                 location,
-                vector::similarity::cosine(embedding, $query_embedding) AS score
+                vector::distance::knn() AS dist
             FROM production
             WHERE embedding <|10|> $query_embedding
-            ORDER BY score DESC",
+            ORDER BY dist",
         )
         .bind(("query_embedding", query_embedding))
         .await
@@ -445,13 +457,16 @@ async fn search_productions(
     // Convert to display results with score as percentage
     let productions: Vec<ProductionSearchResult> = db_productions
         .into_iter()
-        .map(|p| ProductionSearchResult {
-            id: p.id,
-            title: p.title,
-            status: p.status,
-            description: p.description,
-            location: p.location,
-            score: (p.score * 100.0).round() as i32,
+        .map(|p| {
+            let similarity = (1.0 - p.dist).max(0.0);
+            ProductionSearchResult {
+                id: p.id,
+                title: p.title,
+                status: p.status,
+                description: p.description,
+                location: p.location,
+                score: (similarity * 100.0).round() as i32,
+            }
         })
         .filter(|p| p.score >= 50)
         .collect();
