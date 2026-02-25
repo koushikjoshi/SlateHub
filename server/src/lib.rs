@@ -5,6 +5,7 @@ pub mod error;
 pub mod logging;
 pub mod middleware;
 pub mod models;
+pub mod record_id_ext;
 pub mod response;
 pub mod routes;
 pub mod serde_utils;

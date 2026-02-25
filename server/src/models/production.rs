@@ -1,17 +1,19 @@
 use crate::db::DB;
 use crate::error::Error;
+use crate::record_id_ext::RecordIdExt;
 use crate::services::embedding::{build_production_embedding_text, generate_embedding};
 use serde::{Deserialize, Serialize};
-use surrealdb::RecordId;
+use surrealdb::types::{RecordId, SurrealValue};
 use tracing::{debug, warn};
 
 /// Production entity from the database
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Production {
     pub id: RecordId,
     pub title: String,
     pub slug: String,
     #[serde(rename = "type")]
+    #[surreal(rename = "type")]
     pub production_type: String,
     pub status: String,
     pub start_date: Option<String>,
@@ -47,7 +49,7 @@ pub struct UpdateProductionData {
 }
 
 /// Member information for production members
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct ProductionMember {
     pub id: String,
     pub name: String,
@@ -162,17 +164,17 @@ impl ProductionModel {
             .await
             .map_err(|e| Error::Database(format!("Failed to commit transaction: {}", e)))?;
 
-        debug!("Successfully created production: {}", production.id);
+        debug!("Successfully created production: {}", production.id.display());
         Ok(production)
     }
 
     /// Get a production by ID
     pub async fn get(production_id: &RecordId) -> Result<Production, Error> {
-        debug!("Fetching production: {}", production_id);
+        debug!("Fetching production: {}", production_id.display());
 
         let mut result = DB
             .query("SELECT * FROM $production_id")
-            .bind(("production_id", production_id.to_string()))
+            .bind(("production_id", production_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to fetch production: {}", e)))?;
 
@@ -248,7 +250,7 @@ impl ProductionModel {
         production_id: &RecordId,
         data: UpdateProductionData,
     ) -> Result<Production, Error> {
-        debug!("Updating production: {}", production_id);
+        debug!("Updating production: {}", production_id.display());
 
         // Fetch current production to merge with updates for embedding
         let current = Self::get(production_id).await?;
@@ -320,7 +322,7 @@ impl ProductionModel {
 
         let mut db_query = DB
             .query(&query)
-            .bind(("production_id", production_id.to_string()));
+            .bind(("production_id", production_id.to_raw_string()));
 
         if let Some(title) = data.title {
             db_query = db_query.bind(("title", title));
@@ -358,7 +360,7 @@ impl ProductionModel {
 
     /// Delete a production
     pub async fn delete(production_id: &RecordId) -> Result<(), Error> {
-        debug!("Deleting production: {}", production_id);
+        debug!("Deleting production: {}", production_id.display());
 
         // Start transaction
         DB.query("BEGIN TRANSACTION")
@@ -367,13 +369,13 @@ impl ProductionModel {
 
         // Delete all member_of relations to this production
         DB.query("DELETE member_of WHERE out = $production_id")
-            .bind(("production_id", production_id.to_string()))
+            .bind(("production_id", production_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to delete member relations: {}", e)))?;
 
         // Delete all involvement relations to this production
         DB.query("DELETE involvement WHERE out = $production_id")
-            .bind(("production_id", production_id.to_string()))
+            .bind(("production_id", production_id.to_raw_string()))
             .await
             .map_err(|e| {
                 Error::Database(format!("Failed to delete involvement relations: {}", e))
@@ -381,7 +383,7 @@ impl ProductionModel {
 
         // Delete the production
         DB.query("DELETE $production_id")
-            .bind(("production_id", production_id.to_string()))
+            .bind(("production_id", production_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to delete production: {}", e)))?;
 
@@ -416,7 +418,7 @@ impl ProductionModel {
 
     /// Get members of a production
     pub async fn get_members(production_id: &RecordId) -> Result<Vec<ProductionMember>, Error> {
-        debug!("Fetching members for production: {}", production_id);
+        debug!("Fetching members for production: {}", production_id.display());
 
         let query = r#"
             SELECT
@@ -433,7 +435,7 @@ impl ProductionModel {
 
         let mut result = DB
             .query(query)
-            .bind(("production_id", production_id.to_string()))
+            .bind(("production_id", production_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to fetch production members: {}", e)))?;
 
@@ -445,7 +447,7 @@ impl ProductionModel {
     pub async fn is_member(production_id: &RecordId, member_id: &str) -> Result<bool, Error> {
         debug!(
             "Checking membership for {} in production {}",
-            member_id, production_id
+            member_id, production_id.display()
         );
 
         let query = r#"
@@ -456,7 +458,7 @@ impl ProductionModel {
         let mut result = DB
             .query(query)
             .bind(("member_id", member_id.to_string()))
-            .bind(("production_id", production_id.to_string()))
+            .bind(("production_id", production_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to check membership: {}", e)))?;
 
@@ -473,7 +475,7 @@ impl ProductionModel {
     pub async fn can_edit(production_id: &RecordId, member_id: &str) -> Result<bool, Error> {
         debug!(
             "Checking edit permission for {} in production {}",
-            member_id, production_id
+            member_id, production_id.display()
         );
 
         let query = r#"
@@ -484,7 +486,7 @@ impl ProductionModel {
         let mut result = DB
             .query(query)
             .bind(("member_id", member_id.to_string()))
-            .bind(("production_id", production_id.to_string()))
+            .bind(("production_id", production_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to check edit permission: {}", e)))?;
 
@@ -505,7 +507,7 @@ impl ProductionModel {
     ) -> Result<(), Error> {
         debug!(
             "Adding member {} to production {} with role {}",
-            member_id, production_id, role
+            member_id, production_id.display(), role
         );
 
         let query = r#"
@@ -514,7 +516,7 @@ impl ProductionModel {
 
         DB.query(query)
             .bind(("member", member_id.to_string()))
-            .bind(("production", production_id.to_string()))
+            .bind(("production", production_id.to_raw_string()))
             .bind(("role", role.to_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to add member: {}", e)))?;
@@ -526,7 +528,7 @@ impl ProductionModel {
     pub async fn remove_member(production_id: &RecordId, member_id: &str) -> Result<(), Error> {
         debug!(
             "Removing member {} from production {}",
-            member_id, production_id
+            member_id, production_id.display()
         );
 
         let query = r#"
@@ -535,7 +537,7 @@ impl ProductionModel {
 
         DB.query(query)
             .bind(("member", member_id.to_string()))
-            .bind(("production", production_id.to_string()))
+            .bind(("production", production_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to remove member: {}", e)))?;
 

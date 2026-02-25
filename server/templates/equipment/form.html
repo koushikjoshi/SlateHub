@@ -24,7 +24,7 @@
 
     <form id="form-equipment"
           method="post"
-          action="{% if equipment.is_some() %}/equipment/{{ equipment.as_ref().unwrap().id }}/edit{% else %}/equipment/new?owner_type={{ owner_type }}&owner_id={{ owner_id }}{% endif %}">
+          action="{% if equipment.is_some() %}/equipment/{{ equipment.as_ref().unwrap().id|rid }}/edit{% else %}/equipment/new?owner_type={{ owner_type }}&owner_id={{ owner_id }}{% endif %}">
 
         <fieldset id="fieldset-basic" data-role="form-section">
             <legend>Basic Information</legend>
@@ -45,7 +45,7 @@
                 <select id="select-category" name="category" required>
                     <option value="">Select a category</option>
                     {% for cat in categories %}
-                    <option value="{{ cat.id }}"
+                    <option value="{{ cat.id|rid }}"
                             {% if equipment.is_some() && equipment.as_ref().unwrap().category.id == cat.id %}selected{% endif %}>
                         {{ cat.name }}
                     </option>
@@ -127,7 +127,7 @@
                 <select id="select-condition" name="condition" required>
                     <option value="">Select condition</option>
                     {% for cond in conditions %}
-                    <option value="{{ cond.id }}"
+                    <option value="{{ cond.id|rid }}"
                             {% if equipment.is_some() && equipment.as_ref().unwrap().condition.id == cond.id %}selected{% endif %}>
                         {{ cond.name }}{% if cond.description.is_some() %} - {{ cond.description.as_ref().unwrap() }}{% endif %}
                     </option>
@@ -160,7 +160,7 @@
             <button type="submit" data-type="primary">
                 {% if equipment.is_some() %}Update Equipment{% else %}Add Equipment{% endif %}
             </button>
-            <a href="{% if equipment.is_some() %}/equipment/{{ equipment.as_ref().unwrap().id }}{% else %}/equipment?owner_type={{ owner_type }}&owner_id={{ owner_id }}{% endif %}"
+            <a href="{% if equipment.is_some() %}/equipment/{{ equipment.as_ref().unwrap().id|rid }}{% else %}/equipment?owner_type={{ owner_type }}&owner_id={{ owner_id }}{% endif %}"
                role="button"
                data-type="secondary">
                 Cancel

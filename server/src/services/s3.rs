@@ -1,6 +1,7 @@
-//! S3/MinIO service for handling file storage
+//! S3-compatible storage service for handling file uploads
 //!
-//! This module provides an interface to MinIO using the AWS S3 SDK.
+//! This module provides a generic S3 interface that works with any S3-compatible
+//! backend (RustFS, AWS S3, etc.) using the AWS S3 SDK.
 
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::{
@@ -10,7 +11,7 @@ use aws_sdk_s3::{
 };
 use bytes::Bytes;
 use std::time::Duration;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::error::{Error, Result};
 
@@ -26,24 +27,17 @@ pub struct S3Config {
 impl Default for S3Config {
     fn default() -> Self {
         Self {
-            endpoint: std::env::var("MINIO_ENDPOINT")
-                .or_else(|_| std::env::var("S3_ENDPOINT"))
+            endpoint: std::env::var("S3_ENDPOINT")
                 .unwrap_or_else(|_| "http://localhost:9000".to_string()),
-            access_key: std::env::var("MINIO_ACCESS_KEY")
-                .or_else(|_| std::env::var("MINIO_ROOT_USER"))
-                .unwrap_or_else(|_| "admin".to_string()),
-            secret_key: std::env::var("MINIO_SECRET_KEY")
-                .or_else(|_| std::env::var("MINIO_ROOT_PASSWORD"))
-                .unwrap_or_else(|_| "password".to_string()),
-            bucket_name: std::env::var("MINIO_BUCKET")
-                .or_else(|_| std::env::var("S3_BUCKET_NAME"))
-                .unwrap_or_else(|_| "slatehub".to_string()),
-            region: std::env::var("MINIO_REGION").unwrap_or_else(|_| "us-east-1".to_string()),
+            access_key: std::env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "admin".to_string()),
+            secret_key: std::env::var("S3_SECRET_KEY").unwrap_or_else(|_| "password".to_string()),
+            bucket_name: std::env::var("S3_BUCKET").unwrap_or_else(|_| "slatehub".to_string()),
+            region: std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string()),
         }
     }
 }
 
-/// S3/MinIO service
+/// Generic S3-compatible storage service
 pub struct S3Service {
     client: Client,
     config: S3Config,
@@ -56,17 +50,15 @@ impl S3Service {
 
         debug!("Initializing S3 service with endpoint: {}", config.endpoint);
 
-        // Create AWS SDK credentials
         let credentials =
-            Credentials::new(&config.access_key, &config.secret_key, None, None, "MinIO");
+            Credentials::new(&config.access_key, &config.secret_key, None, None, "S3");
 
-        // Configure the AWS SDK for MinIO
         let s3_config = aws_sdk_s3::Config::builder()
             .behavior_version(BehaviorVersion::latest())
             .credentials_provider(credentials)
             .region(Region::new(config.region.clone()))
             .endpoint_url(&config.endpoint)
-            .force_path_style(true) // Required for MinIO
+            .force_path_style(true) // Required for S3-compatible backends
             .build();
 
         let client = Client::from_conf(s3_config);
@@ -76,11 +68,14 @@ impl S3Service {
         // Ensure the default bucket exists
         service.ensure_bucket_exists().await?;
 
+        // Always apply the public-read policy for profile and organization paths
+        service.set_public_read_policy().await?;
+
         info!("S3 service initialized successfully");
         Ok(service)
     }
 
-    /// Ensure the default bucket exists
+    /// Ensure the default bucket exists, creating it if necessary
     async fn ensure_bucket_exists(&self) -> Result<()> {
         debug!("Checking if bucket '{}' exists", self.config.bucket_name);
 
@@ -103,18 +98,20 @@ impl S3Service {
                     .send()
                     .await
                     .map_err(|e| Error::Internal(format!("Failed to create bucket: {}", e)))?;
-
-                // Set bucket policy to allow public read for profile images
-                self.set_bucket_policy().await?;
-
                 Ok(())
             }
         }
     }
 
-    /// Set bucket policy to allow public read for profile images and organization logos
-    async fn set_bucket_policy(&self) -> Result<()> {
-        debug!("Setting bucket policy for public profile images and organization logos");
+    /// Apply a public-read bucket policy for profile images and organization logos.
+    ///
+    /// This is called on every startup so that changes to the policy are
+    /// applied even if the bucket was created by a previous run.
+    async fn set_public_read_policy(&self) -> Result<()> {
+        debug!(
+            "Applying public-read policy for profiles/* and organizations/* in bucket '{}'",
+            self.config.bucket_name
+        );
 
         let policy = format!(
             r#"{{
@@ -124,47 +121,56 @@ impl S3Service {
                         "Effect": "Allow",
                         "Principal": {{"AWS": ["*"]}},
                         "Action": ["s3:GetObject"],
-                        "Resource": ["arn:aws:s3:::{}/profiles/*"]
+                        "Resource": ["arn:aws:s3:::{bucket}/profiles/*"]
                     }},
                     {{
                         "Effect": "Allow",
                         "Principal": {{"AWS": ["*"]}},
                         "Action": ["s3:GetObject"],
-                        "Resource": ["arn:aws:s3:::{}/organizations/*"]
+                        "Resource": ["arn:aws:s3:::{bucket}/organizations/*"]
                     }}
                 ]
             }}"#,
-            self.config.bucket_name, self.config.bucket_name
+            bucket = self.config.bucket_name
         );
 
-        self.client
+        match self
+            .client
             .put_bucket_policy()
             .bucket(&self.config.bucket_name)
             .policy(policy)
             .send()
             .await
-            .map_err(|e| {
-                // MinIO might not support bucket policies in some configurations
-                // Log the error but don't fail - we'll rely on object ACLs instead
-                debug!(
-                    "Could not set bucket policy (this is normal for some MinIO configs): {}",
+        {
+            Ok(_) => {
+                info!(
+                    "Public-read policy applied to bucket '{}'",
+                    self.config.bucket_name
+                );
+            }
+            Err(e) => {
+                // Some S3-compatible backends may not support bucket policies.
+                // Log the warning but don't fail startup — object-level ACLs
+                // set during upload provide a fallback.
+                warn!(
+                    "Could not apply bucket policy (object ACLs will be used as fallback): {}",
                     e
                 );
-                // Return Ok anyway since we set ACLs on individual objects
-            })
-            .ok();
+            }
+        }
 
-        info!("Bucket policy configured for public profile images");
         Ok(())
     }
 
-    /// Upload a file to S3/MinIO
+    /// Upload a file to S3.
+    ///
+    /// Files under `profiles/` and `organizations/` are uploaded with a
+    /// `public-read` ACL so they are directly accessible without presigned URLs.
     pub async fn upload_file(&self, key: &str, data: Bytes, content_type: &str) -> Result<String> {
         debug!("Uploading file to S3: {}", key);
 
         let body = ByteStream::from(data);
 
-        // For profile images, set public-read ACL
         let mut request = self
             .client
             .put_object()
@@ -173,7 +179,7 @@ impl S3Service {
             .body(body)
             .content_type(content_type);
 
-        // Make profile images and organization logos publicly accessible
+        // Profile images and organization logos are public by default
         if key.starts_with("profiles/") || key.starts_with("organizations/") {
             request = request.acl(aws_sdk_s3::types::ObjectCannedAcl::PublicRead);
         }
@@ -185,19 +191,18 @@ impl S3Service {
 
         info!("File uploaded successfully: {}", key);
 
-        // Return the public URL
         Ok(format!(
             "{}/{}/{}",
             self.config.endpoint, self.config.bucket_name, key
         ))
     }
 
-    /// Generate a presigned URL for uploading
+    /// Generate a presigned URL for uploading (expires in 1 hour)
     pub async fn generate_upload_url(&self, key: &str, content_type: &str) -> Result<String> {
         debug!("Generating presigned upload URL for: {}", key);
 
         let presigning_config = aws_sdk_s3::presigning::PresigningConfig::builder()
-            .expires_in(Duration::from_secs(3600)) // 1 hour expiry
+            .expires_in(Duration::from_secs(3600))
             .build()
             .map_err(|e| Error::Internal(format!("Failed to build presigning config: {}", e)))?;
 
@@ -214,12 +219,12 @@ impl S3Service {
         Ok(presigned.uri().to_string())
     }
 
-    /// Generate a presigned URL for downloading
+    /// Generate a presigned URL for downloading (expires in 24 hours)
     pub async fn generate_download_url(&self, key: &str) -> Result<String> {
         debug!("Generating presigned download URL for: {}", key);
 
         let presigning_config = aws_sdk_s3::presigning::PresigningConfig::builder()
-            .expires_in(Duration::from_secs(86400)) // 24 hour expiry
+            .expires_in(Duration::from_secs(86400))
             .build()
             .map_err(|e| Error::Internal(format!("Failed to build presigning config: {}", e)))?;
 
@@ -235,7 +240,7 @@ impl S3Service {
         Ok(presigned.uri().to_string())
     }
 
-    /// Delete a file from S3/MinIO
+    /// Delete a file from S3
     pub async fn delete_file(&self, key: &str) -> Result<()> {
         debug!("Deleting file from S3: {}", key);
 
@@ -251,7 +256,7 @@ impl S3Service {
         Ok(())
     }
 
-    /// Check if a file exists
+    /// Check whether a file exists in S3
     pub async fn file_exists(&self, key: &str) -> Result<bool> {
         match self
             .client
@@ -266,7 +271,7 @@ impl S3Service {
         }
     }
 
-    /// Download a file from S3/MinIO
+    /// Download a file from S3, returning its bytes and content-type
     pub async fn download_file(&self, key: &str) -> Result<(Bytes, String)> {
         debug!("Downloading file from S3: {}", key);
 
@@ -279,13 +284,11 @@ impl S3Service {
             .await
             .map_err(|e| Error::Internal(format!("Failed to download file: {}", e)))?;
 
-        // Get content type or default to application/octet-stream
         let content_type = result
             .content_type()
             .unwrap_or("application/octet-stream")
             .to_string();
 
-        // Collect the body into bytes
         let data = result
             .body
             .collect()
@@ -294,7 +297,7 @@ impl S3Service {
             .into_bytes();
 
         info!(
-            "File downloaded successfully: {} (size: {} bytes)",
+            "File downloaded successfully: {} ({} bytes)",
             key,
             data.len()
         );
@@ -302,7 +305,10 @@ impl S3Service {
     }
 }
 
-// Global S3 service instance
+// ---------------------------------------------------------------------------
+// Global singleton
+// ---------------------------------------------------------------------------
+
 use tokio::sync::OnceCell;
 
 static S3_SERVICE: OnceCell<S3Service> = OnceCell::const_new();

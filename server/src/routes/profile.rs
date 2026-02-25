@@ -11,6 +11,7 @@ use crate::{
     error::Error,
     middleware::{AuthenticatedUser, UserExtractor},
     models::person::Person,
+    record_id_ext::RecordIdExt,
     templates::{
         BaseContext, DateRange, Education, Experience, ProfileData, ProfileEditTemplate,
         ProfileTemplate, User,
@@ -77,7 +78,7 @@ async fn user_profile(
     // Convert Person model to ProfileData
     let profile = profile_user.profile.as_ref();
     let profile_data = ProfileData {
-        id: profile_user.id.to_string(),
+        id: profile_user.id.to_raw_string(),
         name: profile_user.get_display_name(),
         username: profile_user.username.clone(),
         email: profile_user.email.clone(),
@@ -177,7 +178,7 @@ async fn edit_profile_form(request: Request) -> Result<Response, Error> {
     // Convert Person model to ProfileData
     let profile = profile_user.profile.as_ref();
     let profile_data = ProfileData {
-        id: profile_user.id.to_string(),
+        id: profile_user.id.to_raw_string(),
         name: profile_user.get_display_name(),
         username: profile_user.username.clone(),
         email: profile_user.email.clone(),

@@ -3,6 +3,7 @@ use crate::middleware::{AuthenticatedUser, UserExtractor};
 use crate::models::production::{
     CreateProductionData, ProductionMember, ProductionModel, UpdateProductionData,
 };
+use crate::record_id_ext::RecordIdExt;
 use crate::templates::{
     BaseContext, ProductionCreateTemplate, ProductionEditTemplate, ProductionTemplate,
     ProductionsTemplate, User,
@@ -76,7 +77,7 @@ async fn list_productions(
     let productions: Vec<crate::templates::Production> = productions
         .into_iter()
         .map(|p| crate::templates::Production {
-            id: p.id.key().to_string(),
+            id: p.id.key_string(),
             slug: p.slug,
             title: p.title,
             description: p.description.unwrap_or_default(),
@@ -141,7 +142,7 @@ async fn view_production(
         active_page: base.active_page,
         user: base.user,
         production: crate::templates::ProductionDetail {
-            id: production.id.key().to_string(),
+            id: production.id.key_string(),
             slug: production.slug,
             title: production.title,
             description: production.description,
@@ -254,7 +255,7 @@ async fn create_production(
 
     info!(
         "Created production: {} ({})",
-        production.title, production.id
+        production.title, production.id.display()
     );
 
     // Redirect to the new production page
@@ -294,7 +295,7 @@ async fn edit_production_form(
         active_page: base.active_page,
         user: base.user,
         production: crate::templates::ProductionEditData {
-            id: production.id.key().to_string(),
+            id: production.id.key_string(),
             slug: production.slug,
             title: production.title,
             description: production.description,
@@ -347,7 +348,7 @@ async fn update_production(
     // Update the production
     let updated = ProductionModel::update(&production.id, update_data).await?;
 
-    info!("Updated production: {} ({})", updated.title, updated.id);
+    info!("Updated production: {} ({})", updated.title, updated.id.display());
 
     // Redirect to the production page
     Ok(Redirect::to(&format!("/productions/{}", updated.slug)).into_response())
@@ -373,7 +374,7 @@ async fn delete_production(
 
     info!(
         "Deleted production: {} ({})",
-        production.title, production.id
+        production.title, production.id.display()
     );
 
     // Redirect to productions list
@@ -411,7 +412,7 @@ async fn add_member(
 
     info!(
         "Added member {} to production {} with role {}",
-        data.member_id, production.id, data.role
+        data.member_id, production.id.display(), data.role
     );
 
     // Redirect back to production page
@@ -439,7 +440,7 @@ async fn remove_member(
 
     info!(
         "Removed member {} from production {}",
-        data.member_id, production.id
+        data.member_id, production.id.display()
     );
 
     // Redirect back to production page

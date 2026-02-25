@@ -7,10 +7,11 @@
 use crate::auth;
 use crate::db::DB;
 use crate::error::{Error, Result};
+use crate::record_id_ext::RecordIdExt;
 use crate::services::embedding::{build_person_embedding_text, generate_embedding};
 use crate::{db_span, log_error};
 use serde::{Deserialize, Serialize};
-use surrealdb::RecordId;
+use surrealdb::types::{RecordId, SurrealValue};
 use tracing::{debug, error, info, warn};
 
 // -----------------------------------------------------------------------------
@@ -18,7 +19,7 @@ use tracing::{debug, error, info, warn};
 // -----------------------------------------------------------------------------
 
 /// Represents a person record in the database.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Person {
     /// The unique identifier for the person, represented as a SurrealDB `RecordId`.
     pub id: RecordId,
@@ -30,9 +31,11 @@ pub struct Person {
     pub name: Option<String>,
     /// The verification status of the person (unverified, email, sms, identity).
     #[serde(default = "default_verification_status")]
+    #[surreal(default = "default_verification_status")]
     pub verification_status: String,
     /// The detailed profile information for the person.
     #[serde(default)]
+    #[surreal(default)]
     pub profile: Option<Profile>,
 }
 
@@ -42,7 +45,7 @@ fn default_verification_status() -> String {
 
 /// Represents the detailed profile of a person.
 /// Corresponds to the flexible `profile` object in the `person` table.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, SurrealValue)]
 pub struct Profile {
     pub name: Option<String>,
     pub avatar: Option<String>, // Direct URL to profile image
@@ -83,19 +86,19 @@ pub struct Profile {
 // Nested Profile Structs
 // -----------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct AgeRange {
     pub min: i32,
     pub max: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct SocialLink {
     pub platform: String,
     pub url: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Experience {
     pub role: String,
     pub production: Option<String>,
@@ -103,7 +106,7 @@ pub struct Experience {
     pub dates: Option<DateRange>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Education {
     pub institution: String,
     pub degree: Option<String>,
@@ -111,14 +114,14 @@ pub struct Education {
     pub dates: Option<DateRange>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Award {
     pub name: String,
     pub year: i32,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct DateRange {
     pub start: Option<String>,
     pub end: Option<String>,
@@ -138,7 +141,7 @@ impl Person {
     /// A `Result` containing an `Option<Person>`. Returns `Some(Person)` if found,
     /// `None` if not found, or an `Error` if the database operation fails.
     pub async fn get(id: &RecordId) -> Result<Option<Self>> {
-        let _span = db_span!("Person::get", id.to_string()).entered();
+        let _span = db_span!("Person::get", id.to_raw_string()).entered();
         match DB.select(id).await {
             Ok(person) => Ok(person),
             Err(e) => {
@@ -154,7 +157,7 @@ impl Person {
     /// A `Result` containing the updated `Person` record.
     /// Returns an `Error` if the update operation fails.
     pub async fn update(&self) -> Result<Option<Self>> {
-        let _span = db_span!("Person::update", self.id.to_string()).entered();
+        let _span = db_span!("Person::update", self.id.to_raw_string()).entered();
         match DB.update(&self.id).content(self.clone()).await {
             Ok(person) => Ok(person),
             Err(e) => {
@@ -170,7 +173,7 @@ impl Person {
     /// A `Result` containing the deleted `Person` record.
     /// Returns an `Error` if the deletion fails.
     pub async fn delete(&self) -> Result<Option<Self>> {
-        let _span = db_span!("Person::delete", self.id.to_string()).entered();
+        let _span = db_span!("Person::delete", self.id.to_raw_string()).entered();
         match DB.delete(&self.id).await {
             Ok(person) => Ok(person),
             Err(e) => {
@@ -239,28 +242,26 @@ impl Person {
         );
         let _enter = span.enter();
 
-        // Build the full record ID if needed
-        let record_id = if id.starts_with("person:") {
-            id.to_string()
+        // Strip "person:" prefix if present to get just the key
+        let record_key = if id.starts_with("person:") {
+            id.strip_prefix("person:").unwrap()
         } else {
-            format!("person:{}", id)
+            id
         };
 
-        span.record("record_id", &record_id);
+        span.record("record_id", &format!("person:{}", record_key));
         debug!(
-            record_id = %record_id,
-            "Using DB.select to fetch person"
+            record_key = %record_key,
+            "Using parameterized query to fetch person"
         );
 
-        // Query directly using the record ID
-        // In SurrealDB, we can query a specific record directly
-        let sql = format!("SELECT * FROM {}", record_id);
+        let sql = "SELECT * FROM type::record('person', $id)";
         debug!(
             sql = %sql,
-            "Executing direct record query"
+            "Executing parameterized record query"
         );
 
-        let mut response = DB.query(&sql).await?;
+        let mut response = DB.query(sql).bind(("id", record_key.to_string())).await?;
 
         debug!("Query executed, extracting results");
 
@@ -407,7 +408,7 @@ impl Person {
     /// This excludes sensitive data like password and detailed profile info.
     pub fn to_session_user(&self) -> SessionUser {
         SessionUser {
-            id: self.id.to_string(),
+            id: self.id.to_raw_string(),
             username: self.username.clone(),
             email: self.email.clone(),
             name: self
@@ -497,10 +498,10 @@ impl Person {
             Some(p) => {
                 // Verify ownership: The fetched person's ID must match the requested user_id
                 // This is implicit since find_by_id already filters by user_id, but we can be explicit
-                if p.id.to_string() != user_id && !user_id.starts_with("person:") {
+                if p.id.to_raw_string() != user_id && !user_id.starts_with("person:") {
                     // Also check if user_id is missing the "person:" prefix
                     let full_id = format!("person:{}", user_id);
-                    if p.id.to_string() != full_id {
+                    if p.id.to_raw_string() != full_id {
                         error!(
                             "User {} attempted to update profile for different user",
                             user_id
@@ -701,7 +702,7 @@ impl Person {
             .next()
             .ok_or_else(|| Error::Internal("Failed to create user".to_string()))?;
 
-        debug!("Created new user: {} with id: {}", username, person.id);
+        debug!("Created new user: {} with id: {}", username, person.id.display());
 
         // Generate verification code and send email
         use crate::services::email::EmailService;
@@ -736,7 +737,7 @@ impl Person {
         }
 
         // Generate JWT token
-        let token = auth::create_jwt(&person.id.to_string(), &username, &email)?;
+        let token = auth::create_jwt(&person.id.to_raw_string(), &username, &email)?;
 
         Ok(token)
     }
@@ -759,9 +760,9 @@ impl Person {
             .await?;
 
         // Define a struct that includes the password field
-        #[derive(serde::Deserialize)]
+        #[derive(serde::Deserialize, SurrealValue)]
         struct PersonWithPassword {
-            id: surrealdb::RecordId,
+            id: surrealdb::types::RecordId,
             username: String,
             email: String,
             password: String,
@@ -795,7 +796,7 @@ impl Person {
 
         // Generate JWT token
         let token = auth::create_jwt(
-            &person_with_password.id.to_string(),
+            &person_with_password.id.to_raw_string(),
             &person_with_password.username,
             &person_with_password.email,
         )?;

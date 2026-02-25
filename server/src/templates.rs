@@ -573,6 +573,17 @@ pub mod equipment {
     use crate::models::person::SessionUser;
     use askama::Template;
 
+    /// Custom Askama filters for equipment templates
+    mod filters {
+        use crate::record_id_ext::RecordIdExt;
+        use surrealdb::types::RecordId;
+
+        /// Render a RecordId as "table:key" string for use in templates
+        pub fn rid(id: &RecordId) -> askama::Result<String> {
+            Ok(id.to_raw_string())
+        }
+    }
+
     /// Equipment list page template
     #[derive(Template)]
     #[template(path = "equipment/list.html")]

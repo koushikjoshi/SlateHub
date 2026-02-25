@@ -3,6 +3,7 @@ use crate::middleware::{AuthenticatedUser, UserExtractor};
 use crate::models::location::{
     CreateLocationData, CreateRateData, LocationModel, LocationRate, UpdateLocationData,
 };
+use crate::record_id_ext::RecordIdExt;
 use crate::serde_utils::deserialize_optional_i32;
 use crate::templates::{
     BaseContext, LocationCreateTemplate, LocationEditTemplate, LocationTemplate, LocationsTemplate,
@@ -16,7 +17,7 @@ use axum::{
     routing::{get, post},
 };
 use serde::Deserialize;
-use surrealdb::RecordId;
+use surrealdb::types::RecordId;
 use tracing::{debug, error, info};
 
 /// Location routes
@@ -98,7 +99,7 @@ async fn list_locations(
     let locations: Vec<crate::templates::LocationView> = locations
         .into_iter()
         .map(|l| crate::templates::LocationView {
-            id: l.id.key().to_string(),
+            id: l.id.key_string(),
             name: l.name,
             address: l.address,
             city: l.city,
@@ -134,7 +135,7 @@ async fn list_locations(
 async fn view_location(Path(id): Path<String>, request: Request) -> Result<Html<String>, Error> {
     debug!("Viewing location: {}", id);
 
-    let location_id = RecordId::from(("location", id.as_str()));
+    let location_id = RecordId::new("location", id.as_str());
     let location = LocationModel::get(&location_id).await?;
 
     let mut base = BaseContext::new().with_page("locations");
@@ -162,7 +163,7 @@ async fn view_location(Path(id): Path<String>, request: Request) -> Result<Html<
         active_page: base.active_page,
         user: base.user,
         location: crate::templates::LocationDetail {
-            id: location.id.key().to_string(),
+            id: location.id.key_string(),
             name: location.name,
             address: location.address,
             city: location.city,
@@ -282,10 +283,10 @@ async fn create_location(
     // Create the location
     let location = LocationModel::create(location_data, &user.id).await?;
 
-    info!("Created location: {} ({})", location.name, location.id);
+    info!("Created location: {} ({})", location.name, location.id.display());
 
     // Redirect to the new location page
-    Ok(Redirect::to(&format!("/locations/{}", location.id.key())).into_response())
+    Ok(Redirect::to(&format!("/locations/{}", location.id.key_string())).into_response())
 }
 
 /// Show form to edit a location
@@ -296,7 +297,7 @@ async fn edit_location_form(
 ) -> Result<Html<String>, Error> {
     debug!("Showing edit form for location: {}", id);
 
-    let location_id = RecordId::from(("location", id.as_str()));
+    let location_id = RecordId::new("location", id.as_str());
     let location = LocationModel::get(&location_id).await?;
 
     // Check if user can edit
@@ -314,7 +315,7 @@ async fn edit_location_form(
         active_page: base.active_page,
         user: base.user,
         location: crate::templates::LocationEditData {
-            id: location.id.key().to_string(),
+            id: location.id.key_string(),
             name: location.name,
             address: location.address,
             city: location.city,
@@ -351,7 +352,7 @@ async fn update_location(
 ) -> Result<Response, Error> {
     debug!("Updating location: {}", id);
 
-    let location_id = RecordId::from(("location", id.as_str()));
+    let location_id = RecordId::new("location", id.as_str());
     let location = LocationModel::get(&location_id).await?;
 
     // Check if user can edit
@@ -385,10 +386,10 @@ async fn update_location(
     // Update the location
     let updated = LocationModel::update(&location.id, update_data).await?;
 
-    info!("Updated location: {} ({})", updated.name, updated.id);
+    info!("Updated location: {} ({})", updated.name, updated.id.display());
 
     // Redirect to the location page
-    Ok(Redirect::to(&format!("/locations/{}", updated.id.key())).into_response())
+    Ok(Redirect::to(&format!("/locations/{}", updated.id.key_string())).into_response())
 }
 
 /// Delete a location
@@ -399,7 +400,7 @@ async fn delete_location(
 ) -> Result<Response, Error> {
     debug!("Deleting location: {}", id);
 
-    let location_id = RecordId::from(("location", id.as_str()));
+    let location_id = RecordId::new("location", id.as_str());
     let location = LocationModel::get(&location_id).await?;
 
     // Check if user can edit (owner can delete)
@@ -410,7 +411,7 @@ async fn delete_location(
     // Delete the location
     LocationModel::delete(&location.id).await?;
 
-    info!("Deleted location: {} ({})", location.name, location.id);
+    info!("Deleted location: {} ({})", location.name, location.id.display());
 
     // Redirect to locations list
     Ok(Redirect::to("/locations").into_response())
@@ -420,7 +421,7 @@ async fn delete_location(
 async fn get_rates(Path(id): Path<String>) -> Result<Json<Vec<LocationRate>>, Error> {
     debug!("Getting rates for location: {}", id);
 
-    let location_id = RecordId::from(("location", id.as_str()));
+    let location_id = RecordId::new("location", id.as_str());
     let location = LocationModel::get(&location_id).await?;
     let rates = LocationModel::get_rates(&location.id).await?;
 
@@ -436,7 +437,7 @@ async fn add_rate(
 ) -> Result<Response, Error> {
     debug!("Adding rate to location: {}", id);
 
-    let location_id = RecordId::from(("location", id.as_str()));
+    let location_id = RecordId::new("location", id.as_str());
     let location = LocationModel::get(&location_id).await?;
 
     // Check if user can edit
@@ -456,10 +457,10 @@ async fn add_rate(
     // Add the rate
     LocationModel::add_rate(&location.id, rate_data).await?;
 
-    info!("Added rate to location: {}", location.id);
+    info!("Added rate to location: {}", location.id.display());
 
     // Redirect back to location page
-    Ok(Redirect::to(&format!("/locations/{}", location.id.key())).into_response())
+    Ok(Redirect::to(&format!("/locations/{}", location.id.key_string())).into_response())
 }
 
 /// Delete a rate from a location
@@ -470,7 +471,7 @@ async fn delete_rate(
 ) -> Result<Response, Error> {
     debug!("Deleting rate {} from location: {}", rate_id, id);
 
-    let location_id = RecordId::from(("location", id.as_str()));
+    let location_id = RecordId::new("location", id.as_str());
     let location = LocationModel::get(&location_id).await?;
 
     // Check if user can edit
@@ -482,10 +483,10 @@ async fn delete_rate(
     let full_rate_id = format!("location_rate:{}", rate_id);
     LocationModel::delete_rate(&full_rate_id).await?;
 
-    info!("Deleted rate {} from location: {}", rate_id, location.id);
+    info!("Deleted rate {} from location: {}", rate_id, location.id.display());
 
     // Redirect back to location page
-    Ok(Redirect::to(&format!("/locations/{}", location.id.key())).into_response())
+    Ok(Redirect::to(&format!("/locations/{}", location.id.key_string())).into_response())
 }
 
 // Form structures

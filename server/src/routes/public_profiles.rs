@@ -13,6 +13,7 @@ use crate::{
     error::Error,
     middleware::UserExtractor,
     models::person::Person,
+    record_id_ext::RecordIdExt,
     templates::{BaseContext, PeopleTemplate, PersonCard, User},
 };
 
@@ -192,7 +193,7 @@ async fn people(request: Request) -> Result<Html<String>, Error> {
             if let Some(profile) = person.profile {
                 if profile.name.is_some() || profile.headline.is_some() || profile.bio.is_some() {
                     Some(PersonCard {
-                        id: person.id.to_string(),
+                        id: person.id.to_raw_string(),
                         name: profile
                             .name
                             .clone()

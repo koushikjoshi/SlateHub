@@ -16,6 +16,7 @@ use crate::{
     error::Error,
     middleware::UserExtractor,
     models::person::{CreateUser, LoginUser, Person},
+    record_id_ext::RecordIdExt,
     response,
     services::{
         email::EmailService,
@@ -252,7 +253,7 @@ async fn verify_email(
 
             // Create authentication token for the verified user
             let token =
-                crate::auth::create_jwt(&person.id.to_string(), &person.username, &person.email)?;
+                crate::auth::create_jwt(&person.id.to_raw_string(), &person.username, &person.email)?;
 
             // Create authentication cookie
             let cookie = Cookie::build(("auth_token", token))

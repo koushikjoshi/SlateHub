@@ -62,16 +62,16 @@
         </thead>
         <tbody>
             {% for rental in rentals %}
-            <tr data-rental-id="{{ rental.id }}"
+            <tr data-rental-id="{{ rental.id|rid }}"
                 data-status="{% if rental.is_active %}active{% else %}completed{% endif %}">
-                <td data-field="id">{{ rental.id }}</td>
+                <td data-field="id">{{ rental.id|rid }}</td>
                 <td data-field="item">
                     {% if rental.equipment_id.is_some() %}
-                    <a href="/equipment/{{ rental.equipment_id.as_ref().unwrap() }}">
+                    <a href="/equipment/{{ rental.equipment_id.as_ref().unwrap()|rid }}">
                         Equipment
                     </a>
                     {% else if rental.kit_id.is_some() %}
-                    <a href="/equipment/kit/{{ rental.kit_id.as_ref().unwrap() }}">
+                    <a href="/equipment/kit/{{ rental.kit_id.as_ref().unwrap()|rid }}">
                         Kit
                     </a>
                     {% else %}
@@ -89,9 +89,9 @@
                 </td>
                 <td data-field="renter">
                     {% if rental.renter_type == "person" && rental.renter_person.is_some() %}
-                    <a href="/{{ rental.renter_person.as_ref().unwrap() }}">Person</a>
+                    <a href="/{{ rental.renter_person.as_ref().unwrap()|rid }}">Person</a>
                     {% else if rental.renter_type == "organization" && rental.renter_organization.is_some() %}
-                    <a href="/orgs/{{ rental.renter_organization.as_ref().unwrap() }}">Organization</a>
+                    <a href="/orgs/{{ rental.renter_organization.as_ref().unwrap()|rid }}">Organization</a>
                     {% else %}
                     -
                     {% endif %}
@@ -135,7 +135,7 @@
                 </td>
                 <td data-field="actions">
                     {% if rental.is_active %}
-                    <a href="/equipment/rental/{{ rental.id }}/checkin"
+                    <a href="/equipment/rental/{{ rental.id|rid }}/checkin"
                        role="button"
                        data-type="action">
                         Check In

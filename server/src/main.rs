@@ -85,8 +85,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("Authenticating with database");
     match DB
         .signin(Root {
-            username: &config.database.username,
-            password: &config.database.password,
+            username: config.database.username.clone(),
+            password: config.database.password.clone(),
         })
         .await
     {
@@ -127,7 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Initialize S3/MinIO service
+    // Initialize S3 service
     debug!("Initializing S3 service");
     match init_s3().await {
         Ok(_) => info!("S3 service initialized successfully"),

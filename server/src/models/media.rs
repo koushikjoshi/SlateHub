@@ -1,16 +1,16 @@
 //! Media model for handling uploaded files and profile images
 //!
-//! This module manages media uploads, storage in MinIO/S3, and database records.
+//! This module manages media uploads, storage in S3-compatible object storage, and database records.
 
 use crate::db::DB;
 use crate::error::{Error, Result};
 use serde::{Deserialize, Serialize};
-use surrealdb::RecordId;
+use surrealdb::types::{RecordId, SurrealValue};
 use tracing::{debug, info};
 use ulid::Ulid;
 
 /// Media record structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Media {
     /// The unique identifier for the media record
     pub id: RecordId,
@@ -22,9 +22,9 @@ pub struct Media {
     pub mime_type: String,
     /// File size in bytes
     pub size: i64,
-    /// S3/MinIO bucket name
+    /// S3 bucket name
     pub bucket: String,
-    /// S3/MinIO object key/path
+    /// S3 object key/path
     pub object_key: String,
     /// Public URL if available
     pub url: Option<String>,
@@ -39,7 +39,7 @@ pub struct Media {
 }
 
 /// Media dimensions for images/videos
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct MediaDimensions {
     pub width: u32,
     pub height: u32,
@@ -76,7 +76,7 @@ impl Media {
         };
 
         // Create the media record using the SDK's create method
-        #[derive(serde::Serialize)]
+        #[derive(serde::Serialize, serde::Deserialize, SurrealValue)]
         struct MediaData {
             media_type: String,
             filename: String,
@@ -105,7 +105,7 @@ impl Media {
 
         // Use the SDK's create method with a specific ID
         let _result: Option<serde_json::Value> = DB
-            .create(("media", id_part.clone()))
+            .create(RecordId::new("media", id_part.clone()))
             .content(data)
             .await
             .map_err(|e| Error::database(format!("Failed to create media record: {}", e)))?;
@@ -118,7 +118,7 @@ impl Media {
     pub async fn find_by_id(id: &str) -> Result<Option<Self>> {
         debug!("Finding media by ID: {}", id);
 
-        let sql = "SELECT * FROM media WHERE id = type::thing('media', $id)";
+        let sql = "SELECT * FROM media WHERE id = type::record('media', $id)";
 
         let mut response = DB.query(sql).bind(("id", id.to_string())).await?;
 
@@ -130,10 +130,10 @@ impl Media {
     pub async fn delete(id: &str) -> Result<()> {
         debug!("Deleting media record: {}", id);
 
-        // TODO: Delete the actual file from S3/MinIO
+        // TODO: Delete the actual file from S3
         // This will require the S3 client to be passed in or available globally
 
-        let sql = "DELETE type::thing('media', $id)";
+        let sql = "DELETE type::record('media', $id)";
 
         DB.query(sql).bind(("id", id.to_string())).await?;
 
@@ -146,9 +146,9 @@ impl Media {
         debug!("Getting media for person: {}", person_id);
 
         let sql = if let Some(_mt) = media_type {
-            "SELECT * FROM media WHERE uploaded_by = type::thing('person', $person_id) AND media_type = $media_type ORDER BY uploaded_at DESC"
+            "SELECT * FROM media WHERE uploaded_by = type::record('person', $person_id) AND media_type = $media_type ORDER BY uploaded_at DESC"
         } else {
-            "SELECT * FROM media WHERE uploaded_by = type::thing('person', $person_id) ORDER BY uploaded_at DESC"
+            "SELECT * FROM media WHERE uploaded_by = type::record('person', $person_id) ORDER BY uploaded_at DESC"
         };
 
         let mut query = DB.query(sql).bind(("person_id", person_id.to_string()));

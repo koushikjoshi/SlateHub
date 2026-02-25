@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
     slatehub:
         build:
@@ -23,12 +21,12 @@ services:
             - DB_PASSWORD=${DB_PASS:-root}
             - DB_NAMESPACE=${DB_NAMESPACE:-slatehub}
             - DB_NAME=${DB_NAME:-main}
-            # Storage
-            - MINIO_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
-            - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
-            - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-password}
-            - MINIO_BUCKET=${S3_BUCKET_NAME:-slatehub}
-            - MINIO_REGION=us-east-1
+            # Storage (generic S3 interface)
+            - S3_ENDPOINT=${S3_ENDPOINT:-http://rustfs:9000}
+            - S3_ACCESS_KEY=${S3_ACCESS_KEY:-admin}
+            - S3_SECRET_KEY=${S3_SECRET_KEY:-password}
+            - S3_BUCKET=${S3_BUCKET:-slatehub}
+            - S3_REGION=${S3_REGION:-us-east-1}
             # Secrets
             - JWT_SECRET=${JWT_SECRET:-}
             - SESSION_SECRET=${SESSION_SECRET:-}
@@ -40,11 +38,11 @@ services:
         depends_on:
             surrealdb:
                 condition: service_healthy
-            minio:
+            rustfs:
                 condition: service_healthy
 
     surrealdb:
-        image: surrealdb/surrealdb:latest
+        image: surrealdb/surrealdb:v3.0.1
         container_name: slatehub-surrealdb
         restart: unless-stopped
         user: "${UID:-1000}"
@@ -60,9 +58,9 @@ services:
             retries: 15
             start_period: 20s
 
-    minio:
-        image: minio/minio:latest
-        container_name: slatehub-minio
+    rustfs:
+        image: rustfs/rustfs:latest
+        container_name: slatehub-rustfs
         restart: unless-stopped
         ports:
             - "${BIND_IP:-127.0.0.1}:9000:9000"
@@ -70,9 +68,12 @@ services:
         volumes:
             - ./db/files:/data
         environment:
-            - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
-            - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-password}
-        command: server /data --console-address ":9001"
+            - RUSTFS_VOLUMES=/data
+            - RUSTFS_ADDRESS=0.0.0.0:9000
+            - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
+            - RUSTFS_CONSOLE_ENABLE=true
+            - RUSTFS_ACCESS_KEY=${S3_ACCESS_KEY:-admin}
+            - RUSTFS_SECRET_KEY=${S3_SECRET_KEY:-password}
         healthcheck:
             test:
                 [
@@ -86,5 +87,4 @@ services:
 
 networks:
     default:
-        driver: overlay
-        attachable: true
+        driver: bridge

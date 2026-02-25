@@ -7,6 +7,7 @@ use axum::{
 };
 use chrono::Datelike;
 use serde::Deserialize;
+use surrealdb::types::SurrealValue;
 use tracing::{debug, error};
 
 use crate::db::DB;
@@ -180,7 +181,7 @@ async fn search_page(
 }
 
 async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResult>, Error> {
-    #[derive(Debug, serde::Deserialize)]
+    #[derive(Debug, serde::Deserialize, SurrealValue)]
     struct PersonSearchDb {
         id: String,
         name: String,
@@ -204,9 +205,8 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
                 profile.avatar AS avatar_url,
                 vector::similarity::cosine(embedding, $query_embedding) AS score
             FROM person
-            WHERE embedding IS NOT NONE
-            ORDER BY score DESC
-            LIMIT 10",
+            WHERE embedding <|10|> $query_embedding
+            ORDER BY score DESC",
         )
         .bind(("query_embedding", query_embedding))
         .await
@@ -263,7 +263,7 @@ async fn search_people(query_embedding: Vec<f32>) -> Result<Vec<PersonSearchResu
 async fn search_organizations(
     query_embedding: Vec<f32>,
 ) -> Result<Vec<OrganizationSearchResult>, Error> {
-    #[derive(Debug, serde::Deserialize)]
+    #[derive(Debug, serde::Deserialize, SurrealValue)]
     struct OrganizationSearchDb {
         id: String,
         name: String,
@@ -285,9 +285,8 @@ async fn search_organizations(
                 logo,
                 vector::similarity::cosine(embedding, $query_embedding) AS score
             FROM organization
-            WHERE embedding IS NOT NONE
-            ORDER BY score DESC
-            LIMIT 10",
+            WHERE embedding <|10|> $query_embedding
+            ORDER BY score DESC",
         )
         .bind(("query_embedding", query_embedding))
         .await
@@ -330,7 +329,7 @@ async fn search_organizations(
 }
 
 async fn search_locations(query_embedding: Vec<f32>) -> Result<Vec<LocationSearchResult>, Error> {
-    #[derive(Debug, serde::Deserialize)]
+    #[derive(Debug, serde::Deserialize, SurrealValue)]
     struct LocationSearchDb {
         id: String,
         name: String,
@@ -352,9 +351,8 @@ async fn search_locations(query_embedding: Vec<f32>) -> Result<Vec<LocationSearc
                 description,
                 vector::similarity::cosine(embedding, $query_embedding) AS score
             FROM location
-            WHERE embedding IS NOT NONE AND is_public = true
-            ORDER BY score DESC
-            LIMIT 10",
+            WHERE embedding <|10|> $query_embedding AND is_public = true
+            ORDER BY score DESC",
         )
         .bind(("query_embedding", query_embedding))
         .await
@@ -399,7 +397,7 @@ async fn search_locations(query_embedding: Vec<f32>) -> Result<Vec<LocationSearc
 async fn search_productions(
     query_embedding: Vec<f32>,
 ) -> Result<Vec<ProductionSearchResult>, Error> {
-    #[derive(Debug, serde::Deserialize)]
+    #[derive(Debug, serde::Deserialize, SurrealValue)]
     struct ProductionSearchDb {
         id: String,
         title: String,
@@ -419,9 +417,8 @@ async fn search_productions(
                 location,
                 vector::similarity::cosine(embedding, $query_embedding) AS score
             FROM production
-            WHERE embedding IS NOT NONE
-            ORDER BY score DESC
-            LIMIT 10",
+            WHERE embedding <|10|> $query_embedding
+            ORDER BY score DESC",
         )
         .bind(("query_embedding", query_embedding))
         .await

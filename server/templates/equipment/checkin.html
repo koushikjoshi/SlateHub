@@ -18,25 +18,25 @@
     </div>
     {% endif %}
 
-    <form id="form-checkin" method="post" action="/equipment/rental/{{ rental.id }}/checkin">
+    <form id="form-checkin" method="post" action="/equipment/rental/{{ rental.id|rid }}/checkin">
         <fieldset id="fieldset-rental-info" data-role="form-section">
             <legend>Rental Information</legend>
 
             <dl data-component="rental-summary">
                 <dt>Rental ID</dt>
-                <dd>{{ rental.id }}</dd>
+                <dd>{{ rental.id|rid }}</dd>
 
                 {% if rental.equipment_id.is_some() %}
                 <dt>Equipment</dt>
                 <dd>
-                    <a href="/equipment/{{ rental.equipment_id.as_ref().unwrap() }}">
+                    <a href="/equipment/{{ rental.equipment_id.as_ref().unwrap()|rid }}">
                         View Equipment
                     </a>
                 </dd>
                 {% else if rental.kit_id.is_some() %}
                 <dt>Kit</dt>
                 <dd>
-                    <a href="/equipment/kit/{{ rental.kit_id.as_ref().unwrap() }}">
+                    <a href="/equipment/kit/{{ rental.kit_id.as_ref().unwrap()|rid }}">
                         View Kit
                     </a>
                 </dd>
@@ -45,9 +45,9 @@
                 <dt>Renter</dt>
                 <dd>
                     {% if rental.renter_type == "person" && rental.renter_person.is_some() %}
-                    Individual - <a href="/{{ rental.renter_person.as_ref().unwrap() }}">View Profile</a>
+                    Individual - <a href="/{{ rental.renter_person.as_ref().unwrap()|rid }}">View Profile</a>
                     {% else if rental.renter_type == "organization" && rental.renter_organization.is_some() %}
-                    Organization - <a href="/orgs/{{ rental.renter_organization.as_ref().unwrap() }}">View Organization</a>
+                    Organization - <a href="/orgs/{{ rental.renter_organization.as_ref().unwrap()|rid }}">View Organization</a>
                     {% endif %}
                 </dd>
 
@@ -85,7 +85,7 @@
                 <select id="select-return-condition" name="return_condition" required>
                     <option value="">Select condition</option>
                     {% for cond in conditions %}
-                    <option value="{{ cond.id }}">
+                    <option value="{{ cond.id|rid }}">
                         {{ cond.name }}{% if cond.description.is_some() %} - {{ cond.description.as_ref().unwrap() }}{% endif %}
                     </option>
                     {% endfor %}

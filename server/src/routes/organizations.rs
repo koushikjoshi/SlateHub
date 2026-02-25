@@ -16,6 +16,7 @@ use crate::{
         CreateOrganizationData, Organization, OrganizationMember, OrganizationModel,
         UpdateOrganizationData,
     },
+    record_id_ext::RecordIdExt,
     templates::{BaseContext, User},
 };
 
@@ -460,7 +461,7 @@ async fn organization_profile(
 
         // Check user's role in the organization using model
         if let Some(member_role) = model
-            .get_member_role(&organization.id.to_string(), &user.id)
+            .get_member_role(&organization.id.to_raw_string(), &user.id)
             .await?
         {
             is_member = true;
@@ -479,7 +480,7 @@ async fn organization_profile(
     }
 
     // Get organization members using model
-    let members = model.get_members(&organization.id.to_string()).await?;
+    let members = model.get_members(&organization.id.to_raw_string()).await?;
 
     let template = OrganizationProfileTemplate {
         app_name: base.app_name,
@@ -512,7 +513,7 @@ async fn edit_organization_page(
 
     // Check if user has permission to edit
     let role = model
-        .get_member_role(&organization.id.to_string(), &user.id)
+        .get_member_role(&organization.id.to_raw_string(), &user.id)
         .await?;
     if role != Some("owner".to_string()) && role != Some("admin".to_string()) {
         return Err(Error::Forbidden);
@@ -567,7 +568,7 @@ async fn update_organization(
 
     // Check if user has permission to edit
     let role = model
-        .get_member_role(&organization.id.to_string(), &user.id)
+        .get_member_role(&organization.id.to_raw_string(), &user.id)
         .await?;
     if role != Some("owner".to_string()) && role != Some("admin".to_string()) {
         return Err(Error::Forbidden);
@@ -611,7 +612,7 @@ async fn update_organization(
 
     // Use model to update
     model
-        .update(&organization.id.to_string(), update_data)
+        .update(&organization.id.to_raw_string(), update_data)
         .await?;
 
     info!("Organization '{}' updated by user {}", slug, user.id);
@@ -680,14 +681,14 @@ async fn delete_organization(
 
     // Check if user is owner
     let role = model
-        .get_member_role(&organization.id.to_string(), &user.id)
+        .get_member_role(&organization.id.to_raw_string(), &user.id)
         .await?;
     if role != Some("owner".to_string()) {
         return Err(Error::Forbidden);
     }
 
     // Use model to delete
-    model.delete(&organization.id.to_string()).await?;
+    model.delete(&organization.id.to_raw_string()).await?;
 
     info!("Organization '{}' deleted by user {}", slug, user.id);
 
@@ -703,7 +704,7 @@ async fn list_members(
 
     let model = OrganizationModel::new();
     let organization = model.get_by_slug(&slug).await?;
-    let members = model.get_members(&organization.id.to_string()).await?;
+    let members = model.get_members(&organization.id.to_raw_string()).await?;
 
     Ok(Json(members))
 }
@@ -719,7 +720,7 @@ async fn invite_member(
 
     // Check if user has permission to invite
     let role = model
-        .get_member_role(&organization.id.to_string(), &user.id)
+        .get_member_role(&organization.id.to_raw_string(), &user.id)
         .await?;
     if role != Some("owner".to_string()) && role != Some("admin".to_string()) {
         return Err(Error::Forbidden);
@@ -731,7 +732,7 @@ async fn invite_member(
     // Add member with pending status
     model
         .add_member(
-            &organization.id.to_string(),
+            &organization.id.to_raw_string(),
             &invited_user_id,
             &data.role,
             Some(&user.id),
@@ -755,7 +756,7 @@ async fn update_member_role(
 
     // Check if user is owner
     let role = model
-        .get_member_role(&organization.id.to_string(), &user.id)
+        .get_member_role(&organization.id.to_raw_string(), &user.id)
         .await?;
     if role != Some("owner".to_string()) {
         return Err(Error::Forbidden);
@@ -779,7 +780,7 @@ async fn remove_member(
 
     // Check if user is owner
     let role = model
-        .get_member_role(&organization.id.to_string(), &user.id)
+        .get_member_role(&organization.id.to_raw_string(), &user.id)
         .await?;
     if role != Some("owner".to_string()) {
         return Err(Error::Forbidden);
@@ -803,7 +804,7 @@ async fn request_to_join(
 
     // Check if already a member
     if let Some(_) = model
-        .get_member_role(&organization.id.to_string(), &user.id)
+        .get_member_role(&organization.id.to_raw_string(), &user.id)
         .await?
     {
         return Ok(Json(json!({
@@ -814,7 +815,7 @@ async fn request_to_join(
 
     // Add as pending member
     model
-        .add_member(&organization.id.to_string(), &user.id, "member", None)
+        .add_member(&organization.id.to_raw_string(), &user.id, "member", None)
         .await?;
 
     Ok(Json(json!({

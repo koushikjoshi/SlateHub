@@ -10,6 +10,7 @@ use tracing::{debug, error, info};
 
 use crate::db::DB;
 use crate::models::system::System;
+use crate::record_id_ext::RecordIdExt;
 
 pub fn router() -> Router {
     Router::new()
@@ -130,7 +131,7 @@ async fn debug_user(Query(params): Query<HashMap<String, String>>) -> impl IntoR
                 "method": "Person::find_by_username",
                 "success": true,
                 "data": serde_json::json!({
-                    "id": person.id.to_string(),
+                    "id": person.id.to_raw_string(),
                     "username": person.username,
                     "email": person.email,
                     "has_profile": person.profile.is_some()
@@ -162,7 +163,7 @@ async fn debug_user(Query(params): Query<HashMap<String, String>>) -> impl IntoR
                 "method": "Person::find_by_identifier",
                 "success": true,
                 "data": serde_json::json!({
-                    "id": person.id.to_string(),
+                    "id": person.id.to_raw_string(),
                     "username": person.username,
                     "email": person.email,
                     "has_profile": person.profile.is_some()
@@ -196,7 +197,7 @@ async fn debug_user(Query(params): Query<HashMap<String, String>>) -> impl IntoR
                 "count": persons.len(),
                 "data": persons.iter().map(|p| {
                     serde_json::json!({
-                        "id": p.id.to_string(),
+                        "id": p.id.to_raw_string(),
                         "username": p.username,
                         "email": p.email
                     })
@@ -218,7 +219,7 @@ async fn debug_user(Query(params): Query<HashMap<String, String>>) -> impl IntoR
     }))
 }
 
-/// Fix avatar URLs by removing colons from paths (MinIO compatibility)
+/// Fix avatar URLs by removing colons from paths (S3 path compatibility)
 async fn fix_avatar_urls() -> impl IntoResponse {
     debug!("Fixing avatar URLs to remove colons from paths");
 

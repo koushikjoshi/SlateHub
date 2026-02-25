@@ -1,12 +1,13 @@
 use chrono::{DateTime, Duration, Utc};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use surrealdb::RecordId;
+use surrealdb::types::{RecordId, SurrealValue};
 use thiserror::Error;
 use tracing::{debug, info};
 
 use crate::db::DB;
 use crate::error::Error as AppError;
+use crate::record_id_ext::RecordIdExt;
 
 #[derive(Error, Debug)]
 pub enum VerificationError {
@@ -33,12 +34,12 @@ impl From<VerificationError> for AppError {
 
 type Result<T> = std::result::Result<T, VerificationError>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct VerificationCode {
     pub id: RecordId,
     pub person_id: RecordId,
     pub code: String,
-    pub code_type: CodeType,
+    pub code_type: String,
     pub expires_at: DateTime<Utc>,
     pub used: bool,
     pub created_at: DateTime<Utc>,
@@ -117,7 +118,7 @@ impl VerificationService {
 
         debug!(
             "Created {} code for person {}: {}",
-            code_type, person_id, code
+            code_type, person_id.display(), code
         );
 
         Ok(code)
@@ -153,7 +154,7 @@ impl VerificationService {
 
         // Check if code has expired
         if verification.expires_at < Utc::now() {
-            debug!("Code expired for person {}", person_id);
+            debug!("Code expired for person {}", person_id.display());
             return Err(VerificationError::InvalidCode);
         }
 
@@ -165,7 +166,7 @@ impl VerificationService {
 
         info!(
             "Successfully verified {} code for person {}",
-            code_type, person_id
+            code_type, person_id.display()
         );
 
         Ok(())
@@ -195,7 +196,7 @@ impl VerificationService {
             .bind(("person_id", format!("person:{}", person_id)))
             .await?;
 
-        #[derive(Deserialize)]
+        #[derive(Deserialize, SurrealValue)]
         struct PersonStatus {
             verification_status: String,
         }
@@ -214,7 +215,7 @@ impl VerificationService {
 
         DB.query(sql).bind(("person_id", person_id.clone())).await?;
 
-        info!("Marked email as verified for person {}", person_id);
+        info!("Marked email as verified for person {}", person_id.display());
 
         Ok(())
     }

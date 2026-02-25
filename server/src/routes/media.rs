@@ -144,7 +144,7 @@ async fn upload_profile_image(
         .upload_file(&thumb_key, thumbnail, "image/jpeg")
         .await?;
 
-    // Create proxy URLs instead of using direct MinIO URLs
+    // Create proxy URLs instead of using direct S3 URLs
     let main_url = format!("/api/media/{}", main_key);
     let thumb_url = format!("/api/media/{}", thumb_key);
 
@@ -434,7 +434,7 @@ async fn upload_organization_logo(
         .upload_file(&thumb_key, thumbnail, "image/jpeg")
         .await?;
 
-    // Create proxy URLs instead of using direct MinIO URLs
+    // Create proxy URLs instead of using direct S3 URLs
     let main_url = format!("/api/media/{}", main_key);
     let thumb_url = format!("/api/media/{}", thumb_key);
 
@@ -672,7 +672,7 @@ async fn upload_organization_logo_with_slug(
         .upload_file(&thumb_key, thumbnail, "image/jpeg")
         .await?;
 
-    // Create proxy URLs instead of using direct MinIO URLs
+    // Create proxy URLs instead of using direct S3 URLs
     let main_url = format!("/api/media/{}", main_key);
     let thumb_url = format!("/api/media/{}", thumb_key);
 
@@ -698,9 +698,9 @@ async fn upload_organization_logo_with_slug(
 
 /// Debug endpoint to list uploaded files
 async fn debug_list_uploads() -> Result<Json<serde_json::Value>, Error> {
-    debug!("Listing uploaded files in MinIO");
+    debug!("Listing uploaded files in S3");
 
-    // Check if files exist in MinIO
+    // Check if files exist in S3
     let s3_service = s3()?;
 
     // List files in the profiles directory
@@ -736,20 +736,17 @@ async fn debug_list_uploads() -> Result<Json<serde_json::Value>, Error> {
     let media_records: Vec<serde_json::Value> = response.take(0).unwrap_or_default();
 
     Ok(Json(serde_json::json!({
-        "minio_files": found_files,
+        "s3_files": found_files,
         "database_records": media_records,
         "message": "Debug info for uploaded files"
     })))
 }
 
-/// Proxy media files from MinIO through the application
+/// Proxy media files from S3 through the application
 async fn proxy_media(Path(path): Path<String>) -> Result<impl IntoResponse, Error> {
     debug!("Proxying media file: {}", path);
 
-    // Get the S3 service
     let s3 = s3()?;
-
-    // Download the file from MinIO
     let (data, content_type) = s3.download_file(&path).await?;
 
     // Build the response with appropriate headers

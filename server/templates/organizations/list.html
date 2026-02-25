@@ -118,7 +118,7 @@
                     {% for org in organizations %}
                         <article
                 data-component="organization-card"
-                data-org-type="{{ org.org_type.id }}"
+                data-org-type="{{ org.org_type.id.display() }}"
             >
                             <header data-role="card-header">
                                 {% if org.logo.is_some() %}
@@ -129,12 +129,12 @@
                         />
                                     </div>
                                 {% endif %}
-                                <h2 id="org-{{ org.id }}">
+                                <h2 id="org-{{ org.id.display() }}">
                                     <a href="/orgs/{{ org.slug }}">{{ org.name }}</a>
                                 </h2>
                                 <span
                         data-role="org-type"
-                        data-value="{{ org.org_type.id }}"
+                        data-value="{{ org.org_type.id.display() }}"
                         >{{ org.org_type.name }}</span
                     >
                             </header>

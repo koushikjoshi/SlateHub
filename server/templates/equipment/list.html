@@ -73,12 +73,12 @@
         {% else %}
         <div data-component="equipment-grid" data-layout="grid">
             {% for item in equipment %}
-            <article id="equipment-{{ item.id }}"
+            <article id="equipment-{{ item.id|rid }}"
                      data-component="equipment-card"
                      data-status="{% if item.is_available %}available{% else %}unavailable{% endif %}">
                 <header data-role="card-header">
-                    <h3 id="equipment-name-{{ item.id }}">
-                        <a href="/equipment/{{ item.id }}">{{ item.name }}</a>
+                    <h3 id="equipment-name-{{ item.id|rid }}">
+                        <a href="/equipment/{{ item.id|rid }}">{{ item.name }}</a>
                     </h3>
                     <span data-role="status-badge"
                           data-status="{% if item.is_available %}available{% else %}unavailable{% endif %}">
@@ -108,7 +108,7 @@
                         <dt>Part of Kit</dt>
                         <dd data-field="kit">
                             {% if item.parent_kit.is_some() %}
-                            <a href="/equipment/kit/{{ item.parent_kit.as_ref().unwrap() }}">View Kit</a>
+                            <a href="/equipment/kit/{{ item.parent_kit.as_ref().unwrap()|rid }}">View Kit</a>
                             {% endif %}
                         </dd>
                         {% endif %}
@@ -126,13 +126,13 @@
                 <footer data-role="card-footer">
                     <nav data-role="card-actions">
                         {% if item.is_available %}
-                        <a href="/equipment/checkout?equipment_id={{ item.id }}"
+                        <a href="/equipment/checkout?equipment_id={{ item.id|rid }}"
                            role="button"
                            data-type="action">
                             Check Out
                         </a>
                         {% endif %}
-                        <a href="/equipment/{{ item.id }}"
+                        <a href="/equipment/{{ item.id|rid }}"
                            role="button"
                            data-type="secondary">
                             View Details
@@ -160,12 +160,12 @@
         {% else %}
         <div data-component="kit-grid" data-layout="grid">
             {% for kit in kits %}
-            <article id="kit-{{ kit.id }}"
+            <article id="kit-{{ kit.id|rid }}"
                      data-component="kit-card"
                      data-status="{% if kit.is_available %}available{% else %}unavailable{% endif %}">
                 <header data-role="card-header">
-                    <h3 id="kit-name-{{ kit.id }}">
-                        <a href="/equipment/kit/{{ kit.id }}">{{ kit.name }}</a>
+                    <h3 id="kit-name-{{ kit.id|rid }}">
+                        <a href="/equipment/kit/{{ kit.id|rid }}">{{ kit.name }}</a>
                     </h3>
                     <span data-role="status-badge"
                           data-status="{% if kit.is_available %}available{% else %}unavailable{% endif %}">
@@ -196,13 +196,13 @@
                 <footer data-role="card-footer">
                     <nav data-role="card-actions">
                         {% if kit.is_available %}
-                        <a href="/equipment/checkout?kit_id={{ kit.id }}"
+                        <a href="/equipment/checkout?kit_id={{ kit.id|rid }}"
                            role="button"
                            data-type="action">
                             Check Out Kit
                         </a>
                         {% endif %}
-                        <a href="/equipment/kit/{{ kit.id }}"
+                        <a href="/equipment/kit/{{ kit.id|rid }}"
                            role="button"
                            data-type="secondary">
                             View Details

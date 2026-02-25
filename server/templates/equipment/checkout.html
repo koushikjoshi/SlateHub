@@ -24,9 +24,9 @@
 
     <form id="form-checkout" method="post" action="/equipment/checkout">
         {% if equipment.is_some() %}
-        <input type="hidden" name="equipment_id" value="{{ equipment.as_ref().unwrap().id }}">
+        <input type="hidden" name="equipment_id" value="{{ equipment.as_ref().unwrap().id|rid }}">
         {% else if kit.is_some() %}
-        <input type="hidden" name="kit_id" value="{{ kit.as_ref().unwrap().id }}">
+        <input type="hidden" name="kit_id" value="{{ kit.as_ref().unwrap().id|rid }}">
         {% endif %}
 
         <fieldset id="fieldset-item-info" data-role="form-section">
@@ -103,7 +103,7 @@
                 <select id="select-condition" name="condition" required>
                     <option value="">Select condition</option>
                     {% for cond in conditions %}
-                    <option value="{{ cond.id }}">
+                    <option value="{{ cond.id|rid }}">
                         {{ cond.name }}{% if cond.description.is_some() %} - {{ cond.description.as_ref().unwrap() }}{% endif %}
                     </option>
                     {% endfor %}
@@ -125,7 +125,7 @@
             <button type="submit" data-type="primary">
                 Complete Checkout
             </button>
-            <a href="{% if equipment.is_some() %}/equipment/{{ equipment.as_ref().unwrap().id }}{% else if kit.is_some() %}/equipment/kit/{{ kit.as_ref().unwrap().id }}{% else %}/equipment{% endif %}"
+            <a href="{% if equipment.is_some() %}/equipment/{{ equipment.as_ref().unwrap().id|rid }}{% else if kit.is_some() %}/equipment/kit/{{ kit.as_ref().unwrap().id|rid }}{% else %}/equipment{% endif %}"
                role="button"
                data-type="secondary">
                 Cancel

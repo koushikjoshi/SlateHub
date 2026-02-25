@@ -1,13 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use surrealdb::RecordId;
+use surrealdb::types::{RecordId, SurrealValue};
 use tracing::{debug, error, warn};
 
 use crate::{
     db::DB,
     error::Error,
     models::membership::{InvitationStatus, MembershipModel, MembershipRole},
+    record_id_ext::RecordIdExt,
     services::embedding::{build_organization_embedding_text, generate_embedding},
 };
 
@@ -15,7 +15,7 @@ use crate::{
 // Data Structures
 // ============================
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct SocialLink {
     pub platform: String,
     pub url: String,
@@ -23,19 +23,20 @@ pub struct SocialLink {
 
 /// Represents an organization type with its full RecordId
 /// The id field contains the complete reference (e.g., "organization_type:abc123")
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct OrganizationType {
     pub id: RecordId,
     pub name: String,
 }
 
 /// Organization entity with all RecordId references properly typed
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Organization {
     pub id: RecordId, // Full RecordId (e.g., "organization:xyz789")
     pub name: String,
     pub slug: String,
     #[serde(rename = "type")]
+    #[surreal(rename = "type")]
     pub org_type: OrganizationType, // Contains embedded OrganizationType with its RecordId
     pub description: Option<String>,
     pub location: Option<String>,
@@ -52,7 +53,7 @@ pub struct Organization {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct OrganizationMember {
     pub id: RecordId,
     pub person_id: RecordId,
@@ -107,7 +108,7 @@ impl OrganizationModel {
 
     /// Validate that an organization type exists in the database
     async fn validate_organization_type(&self, org_type_id: &RecordId) -> Result<bool, Error> {
-        debug!("Validating organization type: {}", org_type_id);
+        debug!("Validating organization type: {}", org_type_id.display());
         Ok(DB
             .select::<Option<OrganizationType>>(org_type_id)
             .await?
@@ -122,8 +123,8 @@ impl OrganizationModel {
     ) -> Result<Organization, Error> {
         debug!("Creating organization with slug: {}", data.slug);
 
-        let org_type_id: RecordId = RecordId::from_str(&data.org_type)?;
-        let owner_id: RecordId = RecordId::from_str(created_by)?;
+        let org_type_id: RecordId = RecordId::parse_simple(&data.org_type).map_err(|e| Error::BadRequest(e.to_string()))?;
+        let owner_id: RecordId = RecordId::parse_simple(created_by).map_err(|e| Error::BadRequest(e.to_string()))?;
 
         // Check if slug is available
         let (available, reason) = self.check_slug_availability(&data.slug).await?;
@@ -147,11 +148,11 @@ impl OrganizationModel {
                 data.org_type
             )));
         }
-        debug!("Organization type '{}' is valid", org_type_id);
+        debug!("Organization type '{}' is valid", org_type_id.display());
 
         debug!(
             "Creating organization with data: name={}, slug={}, type={}",
-            data.name, data.slug, org_type_id
+            data.name, data.slug, org_type_id.display()
         );
 
         // Get default owner permissions as strings (must match snake_case serialization)
@@ -230,7 +231,7 @@ impl OrganizationModel {
         debug!(
             "Successfully created organization '{}' with ID: {} and owner membership",
             data.slug,
-            org.id.to_string()
+            org.id.display()
         );
 
         Ok(org)
@@ -253,7 +254,7 @@ impl OrganizationModel {
     pub async fn get_by_id(&self, id: &str) -> Result<Organization, Error> {
         debug!("Fetching organization by ID: {}", id);
 
-        let id: RecordId = RecordId::from_str(id)?;
+        let id: RecordId = RecordId::parse_simple(id).map_err(|e| Error::BadRequest(e.to_string()))?;
 
         let result: Option<Organization> = DB
             .query("SELECT *, type.* FROM organization WHERE $id")
@@ -276,16 +277,16 @@ impl OrganizationModel {
         let mut sql = "SELECT *, type.* FROM organization".to_string();
         let mut conditions = Vec::new();
 
-        if let Some(q) = query {
-            conditions.push(format!("(name ~ '{}' OR description ~ '{}')", q, q));
+        if query.is_some() {
+            conditions.push("(string::lowercase(name) CONTAINS string::lowercase($query) OR string::lowercase(description ?? '') CONTAINS string::lowercase($query))".to_string());
         }
 
-        if let Some(ot) = org_type {
-            conditions.push(format!("type.name = '{}'", ot));
+        if org_type.is_some() {
+            conditions.push("type.name = $org_type".to_string());
         }
 
-        if let Some(loc) = location {
-            conditions.push(format!("location ~ '{}'", loc));
+        if location.is_some() {
+            conditions.push("string::lowercase(location ?? '') CONTAINS string::lowercase($location)".to_string());
         }
 
         if !conditions.is_empty() {
@@ -295,7 +296,18 @@ impl OrganizationModel {
 
         sql.push_str(" ORDER BY created_at DESC LIMIT 50");
 
-        let organizations: Vec<Organization> = DB.query(&sql).await?.take(0).unwrap_or_default();
+        let mut result = DB.query(&sql);
+        if let Some(q) = query {
+            result = result.bind(("query", q.to_string()));
+        }
+        if let Some(ot) = org_type {
+            result = result.bind(("org_type", ot.to_string()));
+        }
+        if let Some(loc) = location {
+            result = result.bind(("location", loc.to_string()));
+        }
+
+        let organizations: Vec<Organization> = result.await?.take(0).unwrap_or_default();
 
         Ok(organizations)
     }
@@ -303,7 +315,7 @@ impl OrganizationModel {
     /// Update an existing organization
     pub async fn update(&self, id: &str, data: UpdateOrganizationData) -> Result<(), Error> {
         debug!("Updating organization: {}", id);
-        let id: RecordId = RecordId::from_str(id)?;
+        let id: RecordId = RecordId::parse_simple(id).map_err(|e| Error::BadRequest(e.to_string()))?;
 
         // Generate embedding for semantic search
         let embedding_text = build_organization_embedding_text(
@@ -326,7 +338,7 @@ impl OrganizationModel {
 
         let _: Option<Organization> = DB
             .query(
-                "UPDATE type::thing('organization', $id) SET
+                "UPDATE $id SET
                     name = $name,
                     `type` = $org_type,
                     description = $description,
@@ -365,7 +377,7 @@ impl OrganizationModel {
     pub async fn delete(&self, id: &str) -> Result<(), Error> {
         debug!("Deleting organization: {}", id);
 
-        let id: RecordId = RecordId::from_str(id)?;
+        let id: RecordId = RecordId::parse_simple(id).map_err(|e| Error::BadRequest(e.to_string()))?;
 
         // Delete all memberships first
         let _: Vec<()> = DB
@@ -377,7 +389,7 @@ impl OrganizationModel {
 
         // Delete the organization
         let _: Vec<()> = DB
-            .query("DELETE type::thing('organization', $id)")
+            .query("DELETE $id")
             .bind(("id", id))
             .await?
             .take(0)
@@ -399,8 +411,8 @@ impl OrganizationModel {
             person_id, org_id, role
         );
 
-        let person_id: RecordId = RecordId::from_str(person_id)?;
-        let org_id: RecordId = RecordId::from_str(org_id)?;
+        let person_id: RecordId = RecordId::parse_simple(person_id).map_err(|e| Error::BadRequest(e.to_string()))?;
+        let org_id: RecordId = RecordId::parse_simple(org_id).map_err(|e| Error::BadRequest(e.to_string()))?;
 
         let invitation_status = if role == "owner" {
             "accepted"
@@ -462,7 +474,7 @@ impl OrganizationModel {
                     joined_at,
                     invitation_status
                 FROM member_of
-                WHERE out = type::thing('organization', $org_id)
+                WHERE out = type::record('organization', $org_id)
                 ORDER BY
                     role DESC,
                     person_name ASC",
@@ -562,7 +574,7 @@ impl OrganizationModel {
         debug!("Fetching organization types from database");
 
         // Define a struct to match the query result
-        #[derive(Debug, Deserialize)]
+        #[derive(Debug, Deserialize, SurrealValue)]
         struct OrgTypeRecord {
             id: RecordId,
             name: String,
@@ -581,7 +593,7 @@ impl OrganizationModel {
         // Convert to tuples with full RecordId strings
         let types: Vec<(String, String)> = records
             .into_iter()
-            .map(|record| (record.id.to_string(), record.name))
+            .map(|record| (record.id.to_raw_string(), record.name))
             .collect();
 
         if types.is_empty() {
@@ -622,7 +634,7 @@ impl OrganizationModel {
         debug!("=== Starting get_user_organizations ===");
         debug!("Fetching organizations for user_id: '{}'", user_id);
 
-        let user_id: RecordId = RecordId::from_str(user_id)?;
+        let user_id: RecordId = RecordId::parse_simple(user_id).map_err(|e| Error::BadRequest(e.to_string()))?;
 
         // First get the organization relationships
         // user_id should already be a full record ID like "person:xyz"
@@ -636,7 +648,7 @@ impl OrganizationModel {
             AND invitation_status = 'accepted'
             ORDER BY joined_at DESC";
 
-        debug!("Executing relationship query with user_id: '{}'", user_id);
+        debug!("Executing relationship query with user_id: '{}'", user_id.display());
 
         let relationships: Vec<(RecordId, String, DateTime<Utc>)> = DB
             .query(query)
@@ -652,7 +664,7 @@ impl OrganizationModel {
         debug!(
             "Query returned {} organization relationships for user '{}'",
             relationships.len(),
-            user_id
+            user_id.display()
         );
 
         if relationships.is_empty() {
@@ -660,13 +672,13 @@ impl OrganizationModel {
             debug!("  1. User has no organization memberships");
             debug!(
                 "  2. User ID mismatch (check if '{}' exists in DB)",
-                user_id
+                user_id.display()
             );
             debug!("  3. invitation_status is not 'accepted'");
         } else {
             debug!("Found relationships:");
             for (org_id, role, joined_at) in &relationships {
-                debug!("  - Org: {}, Role: {}, Joined: {}", org_id, role, joined_at);
+                debug!("  - Org: {}, Role: {}, Joined: {}", org_id.display(), role, joined_at);
             }
         }
 
@@ -678,15 +690,15 @@ impl OrganizationModel {
         );
 
         for (org_id, role, joined_at) in relationships {
-            debug!("Fetching organization: {}", org_id);
+            debug!("Fetching organization: {}", org_id.display());
             let org_query = "SELECT *, type.* FROM organization WHERE id = $id";
 
             let org: Option<Organization> = DB
                 .query(org_query)
-                .bind(("id", org_id.to_string()))
+                .bind(("id", org_id.to_raw_string()))
                 .await
                 .map_err(|e| {
-                    error!("Failed to fetch organization {}: {:?}", org_id, e);
+                    error!("Failed to fetch organization {}: {:?}", org_id.display(), e);
                     e
                 })?
                 .take(0)?;
@@ -698,7 +710,7 @@ impl OrganizationModel {
                 );
                 result.push((org, role, joined_at.to_rfc3339()));
             } else {
-                warn!("Organization {} not found in database", org_id);
+                warn!("Organization {} not found in database", org_id.display());
             }
         }
 
@@ -823,8 +835,8 @@ mod tests {
     #[test]
     fn test_organization_member_structure() {
         let member = OrganizationMember {
-            id: RecordId::from_str("member_of:member_123").unwrap(),
-            person_id: RecordId::from_str("person:person_456").unwrap(),
+            id: RecordId::parse_simple("member_of:member_123").unwrap(),
+            person_id: RecordId::parse_simple("person:person_456").unwrap(),
             person_username: "johndoe".to_string(),
             person_name: Some("John Doe".to_string()),
             role: "admin".to_string(),

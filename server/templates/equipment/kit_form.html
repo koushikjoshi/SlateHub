@@ -27,7 +27,7 @@ endblock %} {% block page_name %}kit-form{% endblock %} {% block content %}
     <form
         id="form-kit"
         method="post"
-        action="{% if kit.is_some() %}/equipment/kit/{{ kit.as_ref().unwrap().id }}/edit{% else %}/equipment/kit/new?owner_type={{ owner_type }}&owner_id={{ owner_id }}{% endif %}"
+        action="{% if kit.is_some() %}/equipment/kit/{{ kit.as_ref().unwrap().id|rid }}/edit{% else %}/equipment/kit/new?owner_type={{ owner_type }}&owner_id={{ owner_id }}{% endif %}"
     >
         <fieldset id="fieldset-kit-info" data-role="form-section">
             <legend>Kit Information</legend>
@@ -52,7 +52,7 @@ endblock %} {% block page_name %}kit-form{% endblock %} {% block content %}
                 <select id="select-category" name="category" required>
                     <option value="">Select a category</option>
                     {% for cat in categories %}
-                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    <option value="{{ cat.id|rid }}">{{ cat.name }}</option>
                     {% endfor %}
                 </select>
                 <span id="help-category" data-role="help-text"
@@ -102,11 +102,11 @@ endblock %} {% block page_name %}kit-form{% endblock %} {% block content %}
                 <div data-role="equipment-option">
                     <input
                         type="checkbox"
-                        id="equipment-{{ equipment.id }}"
+                        id="equipment-{{ equipment.id|rid }}"
                         name="equipment_ids"
-                        value="{{ equipment.id }}"
+                        value="{{ equipment.id|rid }}"
                     />
-                    <label for="equipment-{{ equipment.id }}">
+                    <label for="equipment-{{ equipment.id|rid }}">
                         {{ equipment.name }}
                         <span data-role="equipment-details">
                             ({{ equipment.category.name }}{% if
@@ -131,7 +131,7 @@ endblock %} {% block page_name %}kit-form{% endblock %} {% block content %}
                 {% if kit.is_some() %}Update Kit{% else %}Create Kit{% endif %}
             </button>
             <a
-                href="{% if kit.is_some() %}/equipment/kit/{{ kit.as_ref().unwrap().id }}{% else %}/equipment?owner_type={{ owner_type }}&owner_id={{ owner_id }}{% endif %}"
+                href="{% if kit.is_some() %}/equipment/kit/{{ kit.as_ref().unwrap().id|rid }}{% else %}/equipment?owner_type={{ owner_type }}&owner_id={{ owner_id }}{% endif %}"
                 role="button"
                 data-type="secondary"
             >

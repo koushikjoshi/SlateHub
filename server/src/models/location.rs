@@ -1,13 +1,13 @@
 use crate::db::DB;
 use crate::error::Error;
+use crate::record_id_ext::RecordIdExt;
 use crate::services::embedding::{build_location_embedding_text, generate_embedding};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use surrealdb::{RecordId, sql::Thing};
+use surrealdb::types::{RecordId, SurrealValue};
 use tracing::{debug, warn};
 
 /// Location entity from the database
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Location {
     pub id: RecordId,
     pub name: String,
@@ -71,7 +71,7 @@ pub struct UpdateLocationData {
 }
 
 /// Location rate information
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct LocationRate {
     pub id: String,
     pub location: String,
@@ -101,7 +101,8 @@ impl LocationModel {
     pub async fn create(data: CreateLocationData, creator_id: &str) -> Result<Location, Error> {
         debug!("Creating location: {} by {}", data.name, creator_id);
 
-        let creator_id = RecordId::from_str(creator_id)?;
+        let creator_id = RecordId::parse_simple(creator_id)
+            .map_err(|e| Error::BadRequest(e.to_string()))?;
 
         // Generate embedding for semantic search
         let embedding_text = build_location_embedding_text(
@@ -176,13 +177,13 @@ impl LocationModel {
             Error::Database("Failed to create location - no result returned".to_string())
         })?;
 
-        debug!("Successfully created location: {}", location.id);
+        debug!("Successfully created location: {}", location.id.display());
         Ok(location)
     }
 
     /// Get a location by ID
     pub async fn get(location_id: &RecordId) -> Result<Location, Error> {
-        debug!("Fetching location: {}", location_id);
+        debug!("Fetching location: {}", location_id.display());
 
         let mut result = DB
             .query("SELECT * FROM $location_id")
@@ -249,7 +250,7 @@ impl LocationModel {
         location_id: &RecordId,
         data: UpdateLocationData,
     ) -> Result<Location, Error> {
-        debug!("Updating location: {}", location_id);
+        debug!("Updating location: {}", location_id.display());
 
         // Fetch current location to merge with updates for embedding
         let current = Self::get(location_id).await?;
@@ -358,7 +359,7 @@ impl LocationModel {
 
         let mut db_query = DB
             .query(&query)
-            .bind(("location_id", location_id.to_string()));
+            .bind(("location_id", location_id.to_raw_string()));
 
         if let Some(name) = data.name {
             // Also update slug if name changes
@@ -434,7 +435,7 @@ impl LocationModel {
     /// Delete a location and all its rates
     /// Delete a location
     pub async fn delete(location_id: &RecordId) -> Result<(), Error> {
-        debug!("Deleting location: {}", location_id);
+        debug!("Deleting location: {}", location_id.display());
 
         // Start transaction
         DB.query("BEGIN TRANSACTION")
@@ -443,13 +444,13 @@ impl LocationModel {
 
         // Delete all rates associated with this location
         DB.query("DELETE rate WHERE location = $location_id")
-            .bind(("location_id", location_id.to_string()))
+            .bind(("location_id", location_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to delete rates: {}", e)))?;
 
         // Delete the location
         DB.query("DELETE $location_id")
-            .bind(("location_id", location_id.to_string()))
+            .bind(("location_id", location_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to delete location: {}", e)))?;
 
@@ -465,7 +466,7 @@ impl LocationModel {
     pub async fn can_edit(location_id: &RecordId, user_id: &str) -> Result<bool, Error> {
         debug!(
             "Checking edit permission for {} on location {}",
-            user_id, location_id
+            user_id, location_id.display()
         );
 
         let query = r#"
@@ -474,7 +475,7 @@ impl LocationModel {
 
         let mut result = DB
             .query(query)
-            .bind(("location_id", location_id.to_string()))
+            .bind(("location_id", location_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to check permissions: {}", e)))?;
 
@@ -512,7 +513,7 @@ impl LocationModel {
         location_id: &RecordId,
         data: CreateRateData,
     ) -> Result<LocationRate, Error> {
-        debug!("Adding rate to location: {}", location_id);
+        debug!("Adding rate to location: {}", location_id.display());
 
         let query = r#"
             CREATE location_rate CONTENT {
@@ -527,7 +528,7 @@ impl LocationModel {
 
         let mut result = DB
             .query(query)
-            .bind(("location_id", location_id.to_string()))
+            .bind(("location_id", location_id.to_raw_string()))
             .bind(("rate_type", data.rate_type))
             .bind(("amount", data.amount))
             .bind((
@@ -545,7 +546,7 @@ impl LocationModel {
 
     /// Get rates for a location
     pub async fn get_rates(location_id: &RecordId) -> Result<Vec<LocationRate>, Error> {
-        debug!("Fetching rates for location: {}", location_id);
+        debug!("Fetching rates for location: {}", location_id.display());
 
         let query = r#"
             SELECT * FROM location_rate
@@ -555,7 +556,7 @@ impl LocationModel {
 
         let mut result = DB
             .query(query)
-            .bind(("location_id", location_id.to_string()))
+            .bind(("location_id", location_id.to_raw_string()))
             .await
             .map_err(|e| Error::Database(format!("Failed to fetch rates: {}", e)))?;
 
@@ -570,10 +571,10 @@ impl LocationModel {
         DB.query("DELETE $rate_id")
             .bind((
                 "rate_id",
-                Thing::from((
+                RecordId::new(
                     "location_rate",
                     rate_id.strip_prefix("location_rate:").unwrap_or(rate_id),
-                )),
+                ),
             ))
             .await
             .map_err(|e| Error::Database(format!("Failed to delete rate: {}", e)))?;
@@ -592,10 +593,10 @@ impl LocationModel {
             SELECT * FROM location
             WHERE is_public = true
             AND (
-                name ~ $keyword
-                OR city ~ $keyword
-                OR state ~ $keyword
-                OR description ~ $keyword
+                string::lowercase(name) CONTAINS string::lowercase($keyword)
+                OR string::lowercase(city) CONTAINS string::lowercase($keyword)
+                OR string::lowercase(state) CONTAINS string::lowercase($keyword)
+                OR string::lowercase(description ?? '') CONTAINS string::lowercase($keyword)
             )
             ORDER BY created_at DESC
             LIMIT $limit

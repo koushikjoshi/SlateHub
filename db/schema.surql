@@ -11,79 +11,79 @@ OPTION IMPORT;
 -- ------------------------------
 
 -- Organization Types
-DEFINE TABLE organization_type SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE organization_type TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON organization_type TYPE string;
 DEFINE INDEX idx_organization_type_name ON organization_type FIELDS name UNIQUE;
 
 -- Production Types
-DEFINE TABLE production_type SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE production_type TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON production_type TYPE string;
 DEFINE INDEX idx_production_type_name ON production_type FIELDS name UNIQUE;
 
 -- Production Statuses
-DEFINE TABLE production_status SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE production_status TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON production_status TYPE string;
 DEFINE INDEX idx_production_status_name ON production_status FIELDS name UNIQUE;
 
 -- Involvement Relation Types
-DEFINE TABLE involvement_relation_type SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE involvement_relation_type TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON involvement_relation_type TYPE string;
 DEFINE INDEX idx_involvement_relation_type_name ON involvement_relation_type FIELDS name UNIQUE;
 
 -- Roles
-DEFINE TABLE role SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE role TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON role TYPE string;
 DEFINE FIELD department ON role TYPE option<record<department>>;  -- Link to department if needed
 DEFINE INDEX idx_role_name ON role FIELDS name UNIQUE;
 
 -- Departments
-DEFINE TABLE department SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE department TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON department TYPE string;
 DEFINE INDEX idx_department_name ON department FIELDS name UNIQUE;
 
 -- Phases
-DEFINE TABLE phase SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE phase TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON phase TYPE string;
 DEFINE INDEX idx_phase_name ON phase FIELDS name UNIQUE;
 
 -- Credit Types
-DEFINE TABLE credit_type SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE credit_type TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON credit_type TYPE string;
 DEFINE INDEX idx_credit_type_name ON credit_type FIELDS name UNIQUE;
 
 -- Ownership Types
-DEFINE TABLE ownership_type SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE ownership_type TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON ownership_type TYPE string;
 DEFINE INDEX idx_ownership_type_name ON ownership_type FIELDS name UNIQUE;
 
 -- Additional Enum Tables for Profile Fields
 -- Genders
-DEFINE TABLE gender SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE gender TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON gender TYPE string;
 DEFINE INDEX idx_gender_name ON gender FIELDS name UNIQUE;
 
 -- Ethnicities
-DEFINE TABLE ethnicity SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE ethnicity TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON ethnicity TYPE string;
 DEFINE INDEX idx_ethnicity_name ON ethnicity FIELDS name UNIQUE;
 
 -- Hair Colors
-DEFINE TABLE hair_color SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE hair_color TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON hair_color TYPE string;
 DEFINE INDEX idx_hair_color_name ON hair_color FIELDS name UNIQUE;
 
 -- Eye Colors
-DEFINE TABLE eye_color SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE eye_color TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON eye_color TYPE string;
 DEFINE INDEX idx_eye_color_name ON eye_color FIELDS name UNIQUE;
 
 -- Builds/Body Types
-DEFINE TABLE body_type SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE body_type TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON body_type TYPE string;
 DEFINE INDEX idx_body_type_name ON body_type FIELDS name UNIQUE;
 
 -- Unions
-DEFINE TABLE union SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE union TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON union TYPE string;
 DEFINE INDEX idx_union_name ON union FIELDS name UNIQUE;
 
@@ -174,10 +174,10 @@ DEFINE INDEX idx_verification_codes_code ON verification_codes FIELDS code;
 
 DEFINE TABLE person TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 
-DEFINE FIELD email ON person TYPE string ASSERT string::is::email($value) PERMISSIONS FULL;
+DEFINE FIELD email ON person TYPE string ASSERT string::is_email($value) PERMISSIONS FULL;
 DEFINE FIELD password ON person TYPE string PERMISSIONS FULL;
 DEFINE FIELD verification_status ON person TYPE string DEFAULT 'unverified' ASSERT $value IN ['unverified', 'email', 'sms', 'identity'] PERMISSIONS FULL;
-DEFINE FIELD profile ON person FLEXIBLE TYPE option<object> PERMISSIONS FULL;
+DEFINE FIELD profile ON person TYPE option<object> FLEXIBLE PERMISSIONS FULL;
 DEFINE FIELD profile.avatar ON person TYPE option<string> PERMISSIONS FULL;  -- Profile image URL
 DEFINE FIELD profile.headline ON person TYPE option<string> PERMISSIONS FULL;
 DEFINE FIELD profile.height_mm ON person TYPE option<int> PERMISSIONS FULL;
@@ -275,7 +275,7 @@ DEFINE FIELD embedding_text ON location TYPE option<string> PERMISSIONS FULL;  -
 DEFINE TABLE location_rate TYPE NORMAL SCHEMAFULL PERMISSIONS NONE;
 
 DEFINE FIELD location ON location_rate TYPE record<location> PERMISSIONS FULL;
-DEFINE FIELD rate_type ON location_rate TYPE string ASSERT $value INSIDE ["hourly", "daily", "weekly", "monthly", "custom"] PERMISSIONS FULL;
+DEFINE FIELD rate_type ON location_rate TYPE string ASSERT $value IN ["hourly", "daily", "weekly", "monthly", "custom"] PERMISSIONS FULL;
 DEFINE FIELD amount ON location_rate TYPE decimal ASSERT $value >= 0 PERMISSIONS FULL;
 DEFINE FIELD currency ON location_rate TYPE string DEFAULT "USD" PERMISSIONS FULL;
 DEFINE FIELD minimum_duration ON location_rate TYPE option<int> PERMISSIONS FULL;  -- Minimum hours/days/weeks/months
@@ -321,7 +321,7 @@ DEFINE FIELD start_date ON job_posting TYPE option<datetime> PERMISSIONS FULL;
 DEFINE FIELD end_date ON job_posting TYPE option<datetime> PERMISSIONS FULL;
 DEFINE FIELD posted_by ON job_posting TYPE record<person|organization> PERMISSIONS FULL;  -- Who posted
 DEFINE FIELD related_production ON job_posting TYPE option<record<production>> PERMISSIONS FULL;
-DEFINE FIELD status ON job_posting TYPE string DEFAULT "open" ASSERT $value INSIDE ["open", "closed", "filled"] PERMISSIONS FULL;
+DEFINE FIELD status ON job_posting TYPE string DEFAULT "open" ASSERT $value IN ["open", "closed", "filled"] PERMISSIONS FULL;
 DEFINE FIELD created_at ON job_posting TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
 
 DEFINE INDEX idx_job_location ON job_posting FIELDS location;
@@ -334,7 +334,7 @@ DEFINE INDEX idx_job_type ON job_posting FIELDS job_type;
 DEFINE TABLE application TYPE RELATION FROM person TO job_posting SCHEMAFULL PERMISSIONS NONE;
 
 DEFINE FIELD cover_letter ON application TYPE option<string> PERMISSIONS FULL;  -- Application text
-DEFINE FIELD status ON application TYPE string DEFAULT "submitted" ASSERT $value INSIDE ["submitted", "reviewed", "interviewed", "hired", "rejected"] PERMISSIONS FULL;
+DEFINE FIELD status ON application TYPE string DEFAULT "submitted" ASSERT $value IN ["submitted", "reviewed", "interviewed", "hired", "rejected"] PERMISSIONS FULL;
 DEFINE FIELD applied_at ON application TYPE datetime DEFAULT time::now() PERMISSIONS FULL;
 
 -- ------------------------------
@@ -353,10 +353,16 @@ DEFINE INDEX idx_involvement_relation_type ON involvement FIELDS relation_type;
 
 -- Additional for search
 DEFINE ANALYZER profile_analyzer TOKENIZERS blank,class FILTERS lowercase,snowball(english);
-DEFINE INDEX idx_person_bio ON person FIELDS profile.bio SEARCH ANALYZER profile_analyzer BM25;
-DEFINE INDEX idx_person_experience_desc ON person FIELDS profile.experience[*].description SEARCH ANALYZER profile_analyzer BM25;
-DEFINE INDEX idx_job_description ON job_posting FIELDS description SEARCH ANALYZER profile_analyzer BM25;
-DEFINE INDEX idx_job_requirements ON job_posting FIELDS requirements SEARCH ANALYZER profile_analyzer BM25;
+DEFINE INDEX idx_person_bio ON person FIELDS profile.bio FULLTEXT ANALYZER profile_analyzer BM25;
+DEFINE INDEX idx_person_experience_desc ON person FIELDS profile.experience[*].description FULLTEXT ANALYZER profile_analyzer BM25;
+DEFINE INDEX idx_job_description ON job_posting FIELDS description FULLTEXT ANALYZER profile_analyzer BM25;
+DEFINE INDEX idx_job_requirements ON job_posting FIELDS requirements FULLTEXT ANALYZER profile_analyzer BM25;
+
+-- Vector indexes for semantic search (HNSW, v3 only)
+DEFINE INDEX idx_person_embedding ON person FIELDS embedding HNSW DIMENSION 1024 DIST COSINE TYPE F32 EFC 150 M 12;
+DEFINE INDEX idx_organization_embedding ON organization FIELDS embedding HNSW DIMENSION 1024 DIST COSINE TYPE F32 EFC 150 M 12;
+DEFINE INDEX idx_location_embedding ON location FIELDS embedding HNSW DIMENSION 1024 DIST COSINE TYPE F32 EFC 150 M 12;
+DEFINE INDEX idx_production_embedding ON production FIELDS embedding HNSW DIMENSION 1024 DIST COSINE TYPE F32 EFC 150 M 12;
 
 -- ------------------------------
 -- ACCESS DEFINITIONS (for authentication)
@@ -483,19 +489,19 @@ INSERT INTO reserved_names (name) VALUES
 -- ------------------------------
 
 -- Equipment Categories
-DEFINE TABLE equipment_category SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE equipment_category TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON equipment_category TYPE string;
 DEFINE FIELD description ON equipment_category TYPE option<string>;
 DEFINE INDEX idx_equipment_category_name ON equipment_category FIELDS name UNIQUE;
 
 -- Equipment Condition Status
-DEFINE TABLE equipment_condition SCHEMALESS PERMISSIONS FULL;
+DEFINE TABLE equipment_condition TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON equipment_condition TYPE string;
 DEFINE FIELD description ON equipment_condition TYPE option<string>;
 DEFINE INDEX idx_equipment_condition_name ON equipment_condition FIELDS name UNIQUE;
 
 -- Equipment Items (individual pieces of gear)
-DEFINE TABLE equipment SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE equipment TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON equipment TYPE string;
 DEFINE FIELD category ON equipment TYPE record<equipment_category>;
 DEFINE FIELD serial_number ON equipment TYPE option<string>;
@@ -522,7 +528,7 @@ DEFINE INDEX idx_equipment_owner_person ON equipment FIELDS owner_person;
 DEFINE INDEX idx_equipment_owner_org ON equipment FIELDS owner_organization;
 
 -- Equipment Kits (collections of equipment that are checked out together)
-DEFINE TABLE equipment_kit SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE equipment_kit TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD name ON equipment_kit TYPE string;
 DEFINE FIELD description ON equipment_kit TYPE option<string>;
 DEFINE FIELD category ON equipment_kit TYPE record<equipment_category>;
@@ -539,7 +545,7 @@ DEFINE INDEX idx_kit_owner_person ON equipment_kit FIELDS owner_person;
 DEFINE INDEX idx_kit_owner_org ON equipment_kit FIELDS owner_organization;
 
 -- Equipment Rentals (checkout/checkin tracking)
-DEFINE TABLE equipment_rental SCHEMAFULL PERMISSIONS FULL;
+DEFINE TABLE equipment_rental TYPE NORMAL SCHEMAFULL PERMISSIONS FULL;
 DEFINE FIELD equipment_id ON equipment_rental TYPE option<record<equipment>>; -- For individual items
 DEFINE FIELD kit_id ON equipment_rental TYPE option<record<equipment_kit>>; -- For kits
 DEFINE FIELD renter_type ON equipment_rental TYPE string ASSERT $value IN ["person", "organization"];

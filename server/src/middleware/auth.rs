@@ -115,7 +115,7 @@ async fn get_user_from_id(user_id: &str) -> Result<CurrentUser, Error> {
     match Person::find_by_id(id).await {
         Ok(Some(person)) => {
             debug!(
-                person_id = %person.id,
+                person_id = ?person.id,
                 username = %person.username,
                 email = %person.email,
                 "Person found in database"

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use surrealdb::RecordId;
+use surrealdb::types::{RecordId, SurrealValue};
 use tracing::{debug, error};
 use uuid::Uuid;
 
@@ -10,21 +10,21 @@ use crate::{db::DB, error::Error};
 // Data Structures
 // ============================
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue, PartialEq)]
 pub struct EquipmentCategory {
     pub id: RecordId,
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue, PartialEq)]
 pub struct EquipmentCondition {
     pub id: RecordId,
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue, PartialEq)]
 pub struct Equipment {
     pub id: RecordId,
     pub name: String,
@@ -49,7 +49,7 @@ pub struct Equipment {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue, PartialEq)]
 pub struct EquipmentKit {
     pub id: RecordId,
     pub name: String,
@@ -65,7 +65,7 @@ pub struct EquipmentKit {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue, PartialEq)]
 pub struct EquipmentRental {
     pub id: RecordId,
     pub equipment_id: Option<RecordId>,
@@ -187,21 +187,21 @@ impl EquipmentModel {
         let query = r#"
             CREATE equipment CONTENT {
                 name: $name,
-                category: type::thing('equipment_category', $category),
+                category: type::record('equipment_category', $category),
                 serial_number: $serial_number,
                 model: $model,
                 manufacturer: $manufacturer,
                 description: $description,
                 purchase_date: IF $purchase_date THEN <datetime>$purchase_date ELSE NONE END,
                 purchase_price: $purchase_price,
-                condition: type::thing('equipment_condition', $condition),
+                condition: type::record('equipment_condition', $condition),
                 notes: $notes,
                 qr_code: $qr_code,
                 owner_type: $owner_type,
-                owner_person: IF $owner_person THEN type::thing('person', $owner_person) ELSE NONE END,
-                owner_organization: IF $owner_organization THEN type::thing('organization', $owner_organization) ELSE NONE END,
+                owner_person: IF $owner_person THEN type::record('person', $owner_person) ELSE NONE END,
+                owner_organization: IF $owner_organization THEN type::record('organization', $owner_organization) ELSE NONE END,
                 is_kit_item: $is_kit_item,
-                parent_kit: IF $parent_kit THEN type::thing('equipment_kit', $parent_kit) ELSE NONE END,
+                parent_kit: IF $parent_kit THEN type::record('equipment_kit', $parent_kit) ELSE NONE END,
                 is_available: true,
                 current_location: $current_location,
                 created_at: time::now(),
@@ -249,7 +249,7 @@ impl EquipmentModel {
         debug!("Getting equipment with id: {}", id);
 
         let query = r#"
-            SELECT * FROM type::thing('equipment', $id) FETCH category, condition, parent_kit;
+            SELECT * FROM type::record('equipment', $id) FETCH category, condition, parent_kit;
         "#;
 
         let mut result = DB
@@ -273,16 +273,16 @@ impl EquipmentModel {
         debug!("Updating equipment {}: {:?}", id, data);
 
         let query = r#"
-            UPDATE type::thing('equipment', $id) SET
+            UPDATE type::record('equipment', $id) SET
                 name = $name,
-                category = type::thing('equipment_category', $category),
+                category = type::record('equipment_category', $category),
                 serial_number = $serial_number,
                 model = $model,
                 manufacturer = $manufacturer,
                 description = $description,
                 purchase_date = IF $purchase_date THEN <datetime>$purchase_date ELSE NONE END,
                 purchase_price = $purchase_price,
-                condition = type::thing('equipment_condition', $condition),
+                condition = type::record('equipment_condition', $condition),
                 notes = $notes,
                 current_location = $current_location,
                 updated_at = time::now()
@@ -332,7 +332,7 @@ impl EquipmentModel {
         }
 
         let query = r#"
-            DELETE type::thing('equipment', $id);
+            DELETE type::record('equipment', $id);
         "#;
 
         DB.query(query)
@@ -355,14 +355,14 @@ impl EquipmentModel {
         let query = if owner_type == "person" {
             r#"
                 SELECT * FROM equipment
-                WHERE owner_person = type::thing('person', $owner_id)
+                WHERE owner_person = type::record('person', $owner_id)
                 ORDER BY created_at DESC
                 FETCH category, condition, parent_kit;
             "#
         } else {
             r#"
                 SELECT * FROM equipment
-                WHERE owner_organization = type::thing('organization', $owner_id)
+                WHERE owner_organization = type::record('organization', $owner_id)
                 ORDER BY created_at DESC
                 FETCH category, condition, parent_kit;
             "#
@@ -399,11 +399,11 @@ impl EquipmentModel {
             LET $kit = CREATE equipment_kit CONTENT {
                 name: $name,
                 description: $description,
-                category: type::thing('equipment_category', $category),
+                category: type::record('equipment_category', $category),
                 qr_code: $qr_code,
                 owner_type: $owner_type,
-                owner_person: IF $owner_person THEN type::thing('person', $owner_person) ELSE NONE END,
-                owner_organization: IF $owner_organization THEN type::thing('organization', $owner_organization) ELSE NONE END,
+                owner_person: IF $owner_person THEN type::record('person', $owner_person) ELSE NONE END,
+                owner_organization: IF $owner_organization THEN type::record('organization', $owner_organization) ELSE NONE END,
                 is_available: true,
                 notes: $notes,
                 created_at: time::now(),
@@ -411,7 +411,7 @@ impl EquipmentModel {
             };
 
             FOR $eq_id IN $equipment_ids {
-                UPDATE type::thing('equipment', $eq_id) SET
+                UPDATE type::record('equipment', $eq_id) SET
                     is_kit_item = true,
                     parent_kit = $kit.id,
                     updated_at = time::now();
@@ -451,7 +451,7 @@ impl EquipmentModel {
         debug!("Getting kit with id: {}", id);
 
         let query = r#"
-            SELECT * FROM type::thing('equipment_kit', $id) FETCH category;
+            SELECT * FROM type::record('equipment_kit', $id) FETCH category;
         "#;
 
         let mut result = DB
@@ -476,7 +476,7 @@ impl EquipmentModel {
 
         let query = r#"
             SELECT * FROM equipment
-            WHERE parent_kit = type::thing('equipment_kit', $kit_id)
+            WHERE parent_kit = type::record('equipment_kit', $kit_id)
             ORDER BY name
             FETCH category, condition;
         "#;
@@ -509,21 +509,21 @@ impl EquipmentModel {
                 is_kit_item = false,
                 parent_kit = NONE,
                 updated_at = time::now()
-            WHERE parent_kit = type::thing('equipment_kit', $id);
+            WHERE parent_kit = type::record('equipment_kit', $id);
 
             -- Update kit
-            LET $kit = UPDATE type::thing('equipment_kit', $id) SET
+            LET $kit = UPDATE type::record('equipment_kit', $id) SET
                 name = $name,
                 description = $description,
-                category = type::thing('equipment_category', $category),
+                category = type::record('equipment_category', $category),
                 notes = $notes,
                 updated_at = time::now();
 
             -- Add new kit items
             FOR $eq_id IN $equipment_ids {
-                UPDATE type::thing('equipment', $eq_id) SET
+                UPDATE type::record('equipment', $eq_id) SET
                     is_kit_item = true,
-                    parent_kit = type::thing('equipment_kit', $id),
+                    parent_kit = type::record('equipment_kit', $id),
                     updated_at = time::now();
             };
 
@@ -573,10 +573,10 @@ impl EquipmentModel {
                 is_kit_item = false,
                 parent_kit = NONE,
                 updated_at = time::now()
-            WHERE parent_kit = type::thing('equipment_kit', $id);
+            WHERE parent_kit = type::record('equipment_kit', $id);
 
             -- Delete the kit
-            DELETE type::thing('equipment_kit', $id);
+            DELETE type::record('equipment_kit', $id);
 
             COMMIT TRANSACTION;
         "#;
@@ -601,14 +601,14 @@ impl EquipmentModel {
         let query = if owner_type == "person" {
             r#"
                 SELECT * FROM equipment_kit
-                WHERE owner_person = type::thing('person', $owner_id)
+                WHERE owner_person = type::record('person', $owner_id)
                 ORDER BY created_at DESC
                 FETCH category;
             "#
         } else {
             r#"
                 SELECT * FROM equipment_kit
-                WHERE owner_organization = type::thing('organization', $owner_id)
+                WHERE owner_organization = type::record('organization', $owner_id)
                 ORDER BY created_at DESC
                 FETCH category;
             "#
@@ -660,19 +660,19 @@ impl EquipmentModel {
 
             -- Create rental record
             LET $rental = CREATE equipment_rental CONTENT {
-                equipment_id: IF $equipment_id THEN type::thing('equipment', $equipment_id) ELSE NONE END,
-                kit_id: IF $kit_id THEN type::thing('equipment_kit', $kit_id) ELSE NONE END,
+                equipment_id: IF $equipment_id THEN type::record('equipment', $equipment_id) ELSE NONE END,
+                kit_id: IF $kit_id THEN type::record('equipment_kit', $kit_id) ELSE NONE END,
                 renter_type: $renter_type,
-                renter_person: IF $renter_person THEN type::thing('person', $renter_person) ELSE NONE END,
-                renter_organization: IF $renter_organization THEN type::thing('organization', $renter_organization) ELSE NONE END,
+                renter_person: IF $renter_person THEN type::record('person', $renter_person) ELSE NONE END,
+                renter_organization: IF $renter_organization THEN type::record('organization', $renter_organization) ELSE NONE END,
                 checkout_date: time::now(),
                 expected_return_date: IF $expected_return_date THEN <datetime>$expected_return_date ELSE NONE END,
                 actual_return_date: NONE,
-                checkout_condition: type::thing('equipment_condition', $condition),
+                checkout_condition: type::record('equipment_condition', $condition),
                 return_condition: NONE,
                 checkout_notes: $notes,
                 return_notes: NONE,
-                checkout_by: type::thing('person', $checkout_by),
+                checkout_by: type::record('person', $checkout_by),
                 return_by: NONE,
                 is_active: true,
                 created_at: time::now(),
@@ -681,21 +681,21 @@ impl EquipmentModel {
 
             -- Update equipment availability
             IF $equipment_id THEN
-                UPDATE type::thing('equipment', $equipment_id) SET
+                UPDATE type::record('equipment', $equipment_id) SET
                     is_available = false,
                     updated_at = time::now()
             END;
 
             -- Update kit availability (and all its items)
             IF $kit_id THEN {
-                UPDATE type::thing('equipment_kit', $kit_id) SET
+                UPDATE type::record('equipment_kit', $kit_id) SET
                     is_available = false,
                     updated_at = time::now();
 
                 UPDATE equipment SET
                     is_available = false,
                     updated_at = time::now()
-                WHERE parent_kit = type::thing('equipment_kit', $kit_id);
+                WHERE parent_kit = type::record('equipment_kit', $kit_id);
             } END;
 
             RETURN $rental FETCH checkout_condition;
@@ -741,14 +741,14 @@ impl EquipmentModel {
             BEGIN TRANSACTION;
 
             -- Get the rental
-            LET $rental = SELECT * FROM type::thing('equipment_rental', $rental_id);
+            LET $rental = SELECT * FROM type::record('equipment_rental', $rental_id);
 
             -- Update rental record
-            LET $updated_rental = UPDATE type::thing('equipment_rental', $rental_id) SET
+            LET $updated_rental = UPDATE type::record('equipment_rental', $rental_id) SET
                 actual_return_date = time::now(),
-                return_condition = type::thing('equipment_condition', $return_condition),
+                return_condition = type::record('equipment_condition', $return_condition),
                 return_notes = $return_notes,
-                return_by = type::thing('person', $return_by),
+                return_by = type::record('person', $return_by),
                 is_active = false,
                 updated_at = time::now();
 
@@ -803,7 +803,7 @@ impl EquipmentModel {
 
         let query = r#"
             SELECT * FROM equipment_rental
-            WHERE equipment_id = type::thing('equipment', $equipment_id)
+            WHERE equipment_id = type::record('equipment', $equipment_id)
             AND is_active = true
             ORDER BY checkout_date DESC
             FETCH checkout_condition, return_condition;
@@ -831,7 +831,7 @@ impl EquipmentModel {
 
         let query = r#"
             SELECT * FROM equipment_rental
-            WHERE kit_id = type::thing('equipment_kit', $kit_id)
+            WHERE kit_id = type::record('equipment_kit', $kit_id)
             AND is_active = true
             ORDER BY checkout_date DESC
             FETCH checkout_condition, return_condition;
@@ -900,7 +900,7 @@ impl EquipmentModel {
         debug!("Getting rental with id: {}", rental_id);
 
         let query = r#"
-            SELECT * FROM type::thing('equipment_rental', $rental_id)
+            SELECT * FROM type::record('equipment_rental', $rental_id)
             FETCH checkout_condition, return_condition;
         "#;
 
@@ -928,7 +928,7 @@ impl EquipmentModel {
 
         let query = r#"
             SELECT * FROM equipment_rental
-            WHERE equipment_id = type::thing('equipment', $equipment_id)
+            WHERE equipment_id = type::record('equipment', $equipment_id)
             ORDER BY checkout_date DESC
             FETCH checkout_condition, return_condition;
         "#;
@@ -955,7 +955,7 @@ impl EquipmentModel {
 
         let query = r#"
             SELECT * FROM equipment_rental
-            WHERE kit_id = type::thing('equipment_kit', $kit_id)
+            WHERE kit_id = type::record('equipment_kit', $kit_id)
             ORDER BY checkout_date DESC
             FETCH checkout_condition, return_condition;
         "#;

@@ -3,12 +3,12 @@ SlateHub{% endblock %} {% block content %}
 <main
     id="main-content"
     data-page="organization-profile"
-    data-org-id="{{ organization.id }}"
+    data-org-id="{{ organization.id.display() }}"
     data-org-slug="{{ organization.slug }}"
 >
     <article
         data-component="organization-profile"
-        data-org-type="{{ organization.org_type.id }}"
+        data-org-type="{{ organization.org_type.id.display() }}"
     >
         <header data-role="profile-header">
             {% if organization.logo.is_some() %}
@@ -24,7 +24,7 @@ SlateHub{% endblock %} {% block content %}
                 <h1 id="heading-organization">{{ organization.name }}</h1>
                 <span
                     data-role="org-type"
-                    data-value="{{ organization.org_type.id }}"
+                    data-value="{{ organization.org_type.id.display() }}"
                     >{{ organization.org_type.name }}</span
                 >
                 <span
@@ -172,12 +172,12 @@ SlateHub{% endblock %} {% block content %}
                     <header data-role="card-header">
                         <div data-role="avatar">
                             <img
-                                src="/api/avatar?id={{ member.person_id }}"
+                                src="/api/avatar?id={{ member.person_id.display() }}"
                                 alt="{{ member.person_username }} avatar"
                             />
                         </div>
                         <div data-role="member-info">
-                            <h3 id="member-{{ member.id }}">
+                            <h3 id="member-{{ member.id.display() }}">
                                 <a href="/{{ member.person_username }}">
                                     {% if member.person_name.is_some() %} {{
                                     member.person_name.as_ref().unwrap() }} {%
@@ -207,7 +207,7 @@ SlateHub{% endblock %} {% block content %}
                             {% if member.role == "member" %}
                             <form
                                 method="post"
-                                action="/orgs/{{ organization.slug }}/members/{{ member.id }}/role"
+                                action="/orgs/{{ organization.slug }}/members/{{ member.id.display() }}/role"
                                 data-inline="true"
                             >
                                 <input
@@ -226,7 +226,7 @@ SlateHub{% endblock %} {% block content %}
                             {% else if member.role == "admin" %}
                             <form
                                 method="post"
-                                action="/orgs/{{ organization.slug }}/members/{{ member.id }}/role"
+                                action="/orgs/{{ organization.slug }}/members/{{ member.id.display() }}/role"
                                 data-inline="true"
                             >
                                 <input
@@ -246,7 +246,7 @@ SlateHub{% endblock %} {% block content %}
 
                             <form
                                 method="post"
-                                action="/orgs/{{ organization.slug }}/members/{{ member.id }}/remove"
+                                action="/orgs/{{ organization.slug }}/members/{{ member.id.display() }}/remove"
                                 data-inline="true"
                                 data-confirm="Remove this member from the organization?"
                             >

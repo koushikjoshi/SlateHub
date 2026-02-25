@@ -6,6 +6,7 @@
 use crate::db::DB;
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
+use surrealdb::types::SurrealValue;
 use tracing::{debug, error, info};
 
 /// System information and status
@@ -200,7 +201,7 @@ impl System {
         let sql = format!("SELECT count() FROM {} GROUP ALL", table);
         let mut response = DB.query(&sql).await?;
 
-        #[derive(Deserialize)]
+        #[derive(Deserialize, SurrealValue)]
         struct CountResult {
             count: usize,
         }

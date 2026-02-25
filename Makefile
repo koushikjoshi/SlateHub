@@ -1,4 +1,4 @@
-.PHONY: all help start stop services services-start services-stop server server-start server-stop dev dev-start dev-stop logs logs-services logs-server build clean shell check-env db-init dirs wait-db
+.PHONY: all help start stop services services-start services-stop server server-start server-stop dev dev-start dev-stop logs logs-services logs-server build clean purge shell check-env db-init dirs wait-db
 
 # Default target
 all: help
@@ -24,9 +24,9 @@ help:
 	@echo "  make start          - Start all Docker containers (services + server)"
 	@echo "  make stop           - Stop all Docker containers"
 	@echo ""
-	@echo "Services (MinIO + SurrealDB):"
-	@echo "  make services-start - Start MinIO and SurrealDB containers"
-	@echo "  make services-stop  - Stop MinIO and SurrealDB containers"
+	@echo "Services (RustFS + SurrealDB):"
+	@echo "  make services-start - Start RustFS and SurrealDB containers"
+	@echo "  make services-stop  - Stop RustFS and SurrealDB containers"
 	@echo "  make logs-services  - View logs for services"
 	@echo "  make services       - Alias for services-start"
 	@echo ""
@@ -50,6 +50,7 @@ help:
 	@echo "Utilities:"
 	@echo "  make shell          - Open shell in server container"
 	@echo "  make clean          - Stop all services and remove data"
+	@echo "  make purge          - Remove all project containers, images, and volumes from Docker"
 	@echo "  make logs           - View all logs"
 
 check-env:
@@ -79,28 +80,28 @@ start: services-start server-start
 stop:
 	@echo "🛑 Stopping all Docker containers..."
 	@docker-compose down
-	@echo "✅ All services stopped."
+	@echo "✅ All containers stopped."
 
 # ============================================================================
-# Services Management (MinIO + SurrealDB)
+# Services Management (RustFS + SurrealDB)
 # ============================================================================
 
 services-start: check-env dirs
-	@echo "🚀 Starting services (MinIO + SurrealDB)..."
-	@docker-compose up -d surrealdb minio
+	@echo "🚀 Starting services (RustFS + SurrealDB)..."
+	@docker-compose up -d surrealdb rustfs
 	@$(MAKE) wait-db
 	@echo "✅ Services started:"
 	@echo "   SurrealDB: http://localhost:8000"
-	@echo "   MinIO Console: http://localhost:9001"
-	@echo "   MinIO API: http://localhost:9000"
+	@echo "   RustFS Console: http://localhost:9001"
+	@echo "   RustFS API: http://localhost:9000"
 
 services-stop:
 	@echo "🛑 Stopping services..."
-	@docker-compose stop surrealdb minio
+	@docker-compose stop surrealdb rustfs
 	@echo "✅ Services stopped."
 
 logs-services:
-	@docker-compose logs -f surrealdb minio
+	@docker-compose logs -f surrealdb rustfs
 
 # ============================================================================
 # Server - Docker Mode (Production-like)
@@ -157,7 +158,7 @@ dev-stop:
 db-init: wait-db
 	@echo "Initializing database schema..."
 	@if [ -f db/schema.surql ]; then \
-		cat db/schema.surql | docker exec -i slatehub-surrealdb /surreal import --conn http://localhost:8000 --user "$(DB_USER)" --pass "$(DB_PASS)" --ns slatehub --db main /dev/stdin; \
+		cat db/schema.surql | docker exec -i slatehub-surrealdb /surreal import --endpoint http://localhost:8000 --username "$(DB_USER)" --password "$(DB_PASS)" --namespace slatehub --database main /dev/stdin; \
 		echo "✅ Database initialized."; \
 	else \
 		echo "Warning: db/schema.surql not found. Skipping initialization."; \
@@ -167,7 +168,7 @@ db-drop:
 	@echo "⚠️  WARNING: This will delete the entire database!"
 	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]
 	@echo "Dropping database..."
-	@docker exec -i slatehub-surrealdb /surreal sql --conn http://localhost:8000 --user "$(DB_USER)" --pass "$(DB_PASS)" --ns slatehub --db main --pretty <<< "REMOVE DATABASE main;"
+	@docker exec -i slatehub-surrealdb /surreal sql --endpoint http://localhost:8000 --username "$(DB_USER)" --password "$(DB_PASS)" --namespace slatehub --database main --pretty <<< "REMOVE DATABASE main;"
 	@echo "✅ Database dropped."
 
 # ============================================================================
@@ -192,6 +193,17 @@ clean:
 	@echo "Cleaning data directories..."
 	@rm -rf db/data/* db/files/* 2>/dev/null || true
 	@echo "✅ Clean complete."
+
+purge:
+	@echo "⚠️  WARNING: This will remove all slatehub containers, images, and volumes from Docker!"
+	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]
+	@echo "🛑 Stopping and removing containers..."
+	@docker-compose down --volumes --remove-orphans
+	@echo "🗑️  Removing project images..."
+	@docker images --filter "reference=slatehub*" --filter "reference=rustfs/rustfs*" --filter "reference=surrealdb/surrealdb*" -q | xargs -r docker rmi -f
+	@echo "🗑️  Removing dangling build cache..."
+	@docker builder prune -f --filter "label=com.docker.compose.project=slatehub" 2>/dev/null || true
+	@echo "✅ Purge complete. All slatehub Docker resources have been removed."
 
 # ============================================================================
 # Aliases for convenience

@@ -84,16 +84,16 @@ content %}
         >
             {% for membership in organizations %}
             <article
-                id="org-card-{{ membership.organization.id }}"
+                id="org-card-{{ membership.organization.id.display() }}"
                 data-component="organization-card"
-                data-org-id="{{ membership.organization.id }}"
-                data-org-type="{{ membership.organization.org_type.id }}"
+                data-org-id="{{ membership.organization.id.display() }}"
+                data-org-type="{{ membership.organization.org_type.id.display() }}"
                 data-member-role="{{ membership.role }}"
             >
                 <header data-role="card-header">
                     {% if membership.organization.logo.is_some() %}
                     <div
-                        id="org-logo-{{ membership.organization.id }}"
+                        id="org-logo-{{ membership.organization.id.display() }}"
                         data-role="logo-container"
                     >
                         <img
@@ -104,10 +104,10 @@ content %}
                     </div>
                     {% endif %}
 
-                    <h2 id="org-name-{{ membership.organization.id }}">
+                    <h2 id="org-name-{{ membership.organization.id.display() }}">
                         <a
                             href="/orgs/{{ membership.organization.slug }}"
-                            id="link-org-{{ membership.organization.id }}"
+                            id="link-org-{{ membership.organization.id.display() }}"
                             aria-label="View {{ membership.organization.name }}"
                         >
                             {{ membership.organization.name }}
@@ -115,18 +115,18 @@ content %}
                     </h2>
 
                     <div
-                        id="org-badges-{{ membership.organization.id }}"
+                        id="org-badges-{{ membership.organization.id.display() }}"
                         data-role="badge-container"
                     >
                         <span
-                            id="org-type-{{ membership.organization.id }}"
+                            id="org-type-{{ membership.organization.id.display() }}"
                             data-role="org-type-badge"
-                            data-value="{{ membership.organization.org_type.id }}"
+                            data-value="{{ membership.organization.org_type.id.display() }}"
                         >
                             {{ membership.organization.org_type.name }}
                         </span>
                         <span
-                            id="member-role-{{ membership.organization.id }}"
+                            id="member-role-{{ membership.organization.id.display() }}"
                             data-role="member-role-badge"
                             data-value="{{ membership.role }}"
                         >
@@ -138,7 +138,7 @@ content %}
                 <div data-role="card-body">
                     {% if membership.organization.description.is_some() %}
                     <p
-                        id="org-description-{{ membership.organization.id }}"
+                        id="org-description-{{ membership.organization.id.display() }}"
                         data-role="description"
                     >
                         {{ membership.organization.description.as_ref().unwrap()
@@ -147,17 +147,17 @@ content %}
                     {% endif %}
 
                     <dl
-                        id="org-metadata-{{ membership.organization.id }}"
+                        id="org-metadata-{{ membership.organization.id.display() }}"
                         data-role="metadata"
                     >
                         {% if membership.organization.location.is_some() %}
                         <dt
-                            id="label-location-{{ membership.organization.id }}"
+                            id="label-location-{{ membership.organization.id.display() }}"
                         >
                             Location
                         </dt>
                         <dd
-                            id="detail-location-{{ membership.organization.id }}"
+                            id="detail-location-{{ membership.organization.id.display() }}"
                             data-field="location"
                         >
                             {{
@@ -166,11 +166,11 @@ content %}
                         </dd>
                         {% endif %}
 
-                        <dt id="label-joined-{{ membership.organization.id }}">
+                        <dt id="label-joined-{{ membership.organization.id.display() }}">
                             Joined
                         </dt>
                         <dd
-                            id="detail-joined-{{ membership.organization.id }}"
+                            id="detail-joined-{{ membership.organization.id.display() }}"
                             data-field="joined"
                         >
                             <time datetime="{{ membership.joined_at }}">
@@ -180,11 +180,11 @@ content %}
 
                         {% if membership.organization.employees_count.is_some()
                         %}
-                        <dt id="label-size-{{ membership.organization.id }}">
+                        <dt id="label-size-{{ membership.organization.id.display() }}">
                             Size
                         </dt>
                         <dd
-                            id="detail-size-{{ membership.organization.id }}"
+                            id="detail-size-{{ membership.organization.id.display() }}"
                             data-field="size"
                         >
                             {{ membership.organization.employees_count.unwrap()
@@ -196,13 +196,13 @@ content %}
 
                 <footer data-role="card-footer">
                     <nav
-                        id="org-actions-{{ membership.organization.id }}"
+                        id="org-actions-{{ membership.organization.id.display() }}"
                         data-role="card-actions"
                         aria-label="Actions for {{ membership.organization.name }}"
                     >
                         <a
                             href="/orgs/{{ membership.organization.slug }}"
-                            id="button-view-org-{{ membership.organization.id }}"
+                            id="button-view-org-{{ membership.organization.id.display() }}"
                             role="button"
                             data-type="primary"
                             aria-label="View {{ membership.organization.name }}"
@@ -214,7 +214,7 @@ content %}
                         "admin" %}
                         <a
                             href="/orgs/{{ membership.organization.slug }}/edit"
-                            id="button-edit-org-{{ membership.organization.id }}"
+                            id="button-edit-org-{{ membership.organization.id.display() }}"
                             role="button"
                             data-type="secondary"
                             aria-label="Edit {{ membership.organization.name }}"
@@ -224,7 +224,7 @@ content %}
                         {% endif %} {% if membership.role == "owner" %}
                         <a
                             href="/orgs/{{ membership.organization.slug }}/members"
-                            id="button-manage-members-{{ membership.organization.id }}"
+                            id="button-manage-members-{{ membership.organization.id.display() }}"
                             role="button"
                             data-type="secondary"
                             aria-label="Manage members of {{ membership.organization.name }}"

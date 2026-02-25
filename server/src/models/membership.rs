@@ -7,8 +7,7 @@ use crate::{db::DB, error::Error};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::str::FromStr;
-use surrealdb::RecordId;
+use surrealdb::types::{RecordId, SurrealValue};
 use tracing::{debug, error};
 
 // ============================
@@ -16,7 +15,7 @@ use tracing::{debug, error};
 // ============================
 
 /// Represents a membership relationship between a person and an organization
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
 pub struct Membership {
     pub id: RecordId,
     pub person_id: RecordId,
@@ -30,7 +29,7 @@ pub struct Membership {
 }
 
 /// Membership roles within an organization
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "lowercase")]
 pub enum MembershipRole {
     Owner,
@@ -58,7 +57,7 @@ impl MembershipRole {
 }
 
 /// Permissions that can be granted to members
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "snake_case")]
 pub enum Permission {
     // Organization management
@@ -81,7 +80,7 @@ pub enum Permission {
 }
 
 /// Status of a membership invitation
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SurrealValue)]
 #[serde(rename_all = "lowercase")]
 pub enum InvitationStatus {
     Pending,
@@ -185,9 +184,9 @@ impl MembershipModel {
 
         let result: Option<Membership> = DB
             .query(query)
-            .bind(("role", data.role.as_str().to_string()))
+            .bind(("role", data.role.clone()))
             .bind(("permissions", data.permissions.clone()))
-            .bind(("status", data.invitation_status.as_str().to_string()))
+            .bind(("status", data.invitation_status.clone()))
             .bind(("inviter", data.invited_by.clone()))
             .await?
             .take("AFTER")?;
@@ -209,8 +208,10 @@ impl MembershipModel {
             person_id, org_id
         );
 
-        let person_id: RecordId = RecordId::from_str(person_id)?;
-        let org_id: RecordId = RecordId::from_str(org_id)?;
+        let person_id: RecordId = RecordId::parse_simple(person_id)
+            .map_err(|e| Error::BadRequest(e.to_string()))?;
+        let org_id: RecordId = RecordId::parse_simple(org_id)
+            .map_err(|e| Error::BadRequest(e.to_string()))?;
 
         let query = "SELECT
                         id,

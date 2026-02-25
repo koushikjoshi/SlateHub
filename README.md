@@ -24,6 +24,11 @@ cp .env.example .env
 | `DATABASE_URL` | (Optional) Full database connection URL | Constructed from host and port |
 | `RUST_LOG` | Log level configuration | `info,slatehub=debug,tower_http=debug` |
 | `LOG_FORMAT` | Log output format (`json`, `pretty`, `compact`) | `pretty` |
+| `S3_ENDPOINT` | S3-compatible storage endpoint URL | `http://localhost:9000` |
+| `S3_ACCESS_KEY` | S3 access key | `admin` |
+| `S3_SECRET_KEY` | S3 secret key | `password` |
+| `S3_BUCKET` | S3 bucket name | `slatehub` |
+| `S3_REGION` | S3 region | `us-east-1` |
 | `MAILJET_API_KEY` | Mailjet API key for sending emails | Required for email features |
 | `MAILJET_API_SECRET` | Mailjet API secret | Required for email features |
 | `MAILJET_FROM_EMAIL` | Default sender email address | `noreply@slatehub.com` |
@@ -48,6 +53,13 @@ DB_NAME=main
 SERVER_HOST=127.0.0.1
 SERVER_PORT=3000
 
+# Storage Configuration (S3-compatible — defaults to local RustFS)
+S3_ENDPOINT=http://localhost:9000
+S3_ACCESS_KEY=admin
+S3_SECRET_KEY=password
+S3_BUCKET=slatehub
+S3_REGION=us-east-1
+
 # Logging Configuration
 RUST_LOG=info,slatehub=debug,tower_http=debug
 LOG_FORMAT=pretty
@@ -64,8 +76,23 @@ MAILJET_FROM_NAME=SlateHub
 
 1. Clone the repository
 2. Copy `.env.example` to `.env` and configure your environment variables
-3. Start the database (e.g., using docker-compose)
-4. Run the server: `cd server && cargo run`
+3. Start all services with Docker: `make services-start`
+4. Run the server: `make dev` (local) or `make start` (Docker)
+
+### Services
+
+SlateHub depends on two backing services, both managed via `docker-compose`:
+
+| Service | Purpose | Default ports |
+|---------|---------|---------------|
+| [SurrealDB](https://surrealdb.com) | Primary database | `8000` |
+| [RustFS](https://rustfs.com) | S3-compatible object storage | API `9000`, Console `9001` |
+
+RustFS is a high-performance, Apache 2.0-licensed S3-compatible object store written in Rust.
+Profile images and organisation logos are stored there and served publicly without presigned URLs.
+The server talks to RustFS (and any other S3-compatible backend) through the standard AWS S3 SDK —
+swap the `S3_ENDPOINT`, `S3_ACCESS_KEY`, and `S3_SECRET_KEY` variables to point at AWS S3,
+Cloudflare R2, or any other compatible service instead.
 
 ## Logging
 
@@ -136,7 +163,7 @@ The profile image upload system has been simplified:
 - **Direct URL Storage**: Profile avatars now store the image URL directly in the `person.profile.avatar` field instead of using a separate media table with relationships
 - **Improved Performance**: Single database query retrieves the complete profile including the avatar URL
 - **Simplified Architecture**: No more complex relationship queries or media record management for profile images
-- **MinIO/S3 Integration**: Images are uploaded directly to object storage with automatic thumbnail generation
+- **S3-Compatible Storage**: Images are uploaded directly to object storage (RustFS by default) with automatic thumbnail generation and public-read access for profile paths
 
 For detailed information about the profile image upload system, see [Profile Image Upload Documentation](docs/PROFILE_IMAGE_UPLOAD.md).
 
@@ -152,7 +179,7 @@ This will test image upload, storage, and retrieval to ensure everything is work
 
 ## Testing
 
-SlateHub includes a comprehensive testing suite with isolated test environments for unit and integration tests. The test infrastructure uses separate MinIO and SurrealDB instances to ensure tests don't interfere with development data.
+SlateHub includes a comprehensive testing suite with isolated test environments for unit and integration tests. The test infrastructure uses separate RustFS and SurrealDB instances to ensure tests don't interfere with development data.
 
 ### Quick Start
 
@@ -174,7 +201,7 @@ make test-watch
 
 The test environment runs on separate ports:
 - **SurrealDB Test**: Port 8100 (vs 8000 for development)
-- **MinIO Test**: Ports 9100/9101 (vs 9000/9001 for development)
+- **RustFS Test**: Ports 9100/9101 (vs 9000/9001 for development)
 
 Each test run:
 1. Starts fresh test containers

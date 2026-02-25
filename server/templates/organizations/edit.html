@@ -40,7 +40,7 @@
                         <select id="select-org-type" name="org_type" required>
                             <option value="">Select type...</option>
                             {% for org_type in org_types %}
-                                <option value="{{ org_type.id }}" {% if org_type.id.to_string() == organization.org_type.id.to_string() %}selected{% endif %}>{{ org_type.name }}</option>
+                                <option value="{{ org_type.id }}" {% if org_type.id == organization.org_type.id.to_raw_string() %}selected{% endif %}>{{ org_type.name }}</option>
                             {% endfor %}
                         </select>
                     </div>

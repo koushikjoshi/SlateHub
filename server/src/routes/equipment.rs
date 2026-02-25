@@ -10,6 +10,7 @@ use tracing::info;
 use crate::{
     error::Error,
     middleware::{AuthenticatedUser, UserExtractor},
+    record_id_ext::RecordIdExt,
     models::{
         equipment::{
             CheckinData, CheckoutData, CreateEquipmentData, CreateKitData, Equipment,
@@ -126,7 +127,7 @@ pub async fn list_equipment(
             let members = org_model.get_members(&oi).await?;
             if !members
                 .iter()
-                .any(|m| m.person_id.to_string() == current_user.id)
+                .any(|m| m.person_id.to_raw_string() == current_user.id)
             {
                 return Err(Error::Unauthorized);
             }
@@ -272,7 +273,7 @@ pub async fn create_equipment(
         let members = org_model.get_members(&owner_id).await?;
         if !members
             .iter()
-            .any(|m| m.person_id.to_string() == current_user.id)
+            .any(|m| m.person_id.to_raw_string() == current_user.id)
         {
             return Err(Error::Unauthorized);
         }
@@ -317,9 +318,9 @@ pub async fn create_equipment(
 
     let equipment = EquipmentModel::create_equipment(data).await?;
 
-    info!("Equipment created: {}", equipment.id);
+    info!("Equipment created: {}", equipment.id.display());
 
-    Ok(Redirect::to(&format!("/equipment/{}", equipment.id)).into_response())
+    Ok(Redirect::to(&format!("/equipment/{}", equipment.id.display())).into_response())
 }
 
 pub async fn show_equipment_detail(
@@ -339,14 +340,14 @@ pub async fn show_equipment_detail(
             equipment
                 .owner_person
                 .as_ref()
-                .map_or(false, |p| p.to_string() == user.id)
+                .map_or(false, |p| p.to_raw_string() == user.id)
         } else if let Some(org_id) = equipment.owner_organization.as_ref() {
             let org_model = OrganizationModel::new();
             let members = org_model
-                .get_members(&org_id.to_string())
+                .get_members(&org_id.to_raw_string())
                 .await
                 .unwrap_or_default();
-            members.iter().any(|m| m.person_id.to_string() == user.id)
+            members.iter().any(|m| m.person_id.to_raw_string() == user.id)
         } else {
             false
         }
@@ -390,16 +391,16 @@ pub async fn show_edit_equipment_form(
         if equipment
             .owner_person
             .as_ref()
-            .map_or(true, |p| p.to_string() != current_user.id)
+            .map_or(true, |p| p.to_raw_string() != current_user.id)
         {
             return Err(Error::Unauthorized);
         }
     } else if let Some(org_id) = equipment.owner_organization.as_ref() {
         let org_model = OrganizationModel::new();
-        let members = org_model.get_members(&org_id.to_string()).await?;
+        let members = org_model.get_members(&org_id.to_raw_string()).await?;
         if !members
             .iter()
-            .any(|m| m.person_id.to_string() == current_user.id)
+            .any(|m| m.person_id.to_raw_string() == current_user.id)
         {
             return Err(Error::Unauthorized);
         }
@@ -428,7 +429,7 @@ pub async fn show_edit_equipment_form(
         owner_id: equipment
             .owner_person
             .or(equipment.owner_organization)
-            .map(|r| r.to_string())
+            .map(|r| r.to_raw_string())
             .unwrap_or_default(),
         page_title: "Edit Equipment".to_string(),
         error_message: error_query.error,
@@ -466,16 +467,16 @@ pub async fn update_equipment(
         if equipment
             .owner_person
             .as_ref()
-            .map_or(true, |p| p.to_string() != current_user.id)
+            .map_or(true, |p| p.to_raw_string() != current_user.id)
         {
             return Err(Error::Unauthorized);
         }
     } else if let Some(org_id) = equipment.owner_organization.as_ref() {
         let org_model = OrganizationModel::new();
-        let members = org_model.get_members(&org_id.to_string()).await?;
+        let members = org_model.get_members(&org_id.to_raw_string()).await?;
         if !members
             .iter()
-            .any(|m| m.person_id.to_string() == current_user.id)
+            .any(|m| m.person_id.to_raw_string() == current_user.id)
         {
             return Err(Error::Unauthorized);
         }
@@ -507,7 +508,7 @@ pub async fn update_equipment(
 
     let updated_equipment = EquipmentModel::update_equipment(&id, data).await?;
 
-    info!("Equipment updated: {}", updated_equipment.id);
+    info!("Equipment updated: {}", updated_equipment.id.display());
 
     Ok(Redirect::to(&format!("/equipment/{}", id)).into_response())
 }
@@ -523,16 +524,16 @@ pub async fn delete_equipment(
         if equipment
             .owner_person
             .as_ref()
-            .map_or(true, |p| p.to_string() != current_user.id)
+            .map_or(true, |p| p.to_raw_string() != current_user.id)
         {
             return Err(Error::Unauthorized);
         }
     } else if let Some(org_id) = equipment.owner_organization.as_ref() {
         let org_model = OrganizationModel::new();
-        let members = org_model.get_members(&org_id.to_string()).await?;
+        let members = org_model.get_members(&org_id.to_raw_string()).await?;
         if !members
             .iter()
-            .any(|m| m.person_id.to_string() == current_user.id)
+            .any(|m| m.person_id.to_raw_string() == current_user.id)
         {
             return Err(Error::Unauthorized);
         }
@@ -544,7 +545,7 @@ pub async fn delete_equipment(
     let owner_id = equipment
         .owner_person
         .or(equipment.owner_organization)
-        .map(|r| r.to_string())
+        .map(|r| r.to_raw_string())
         .unwrap_or_default();
 
     EquipmentModel::delete_equipment(&id).await?;
@@ -616,7 +617,7 @@ pub async fn create_kit(
         let members = org_model.get_members(&owner_id).await?;
         if !members
             .iter()
-            .any(|m| m.person_id.to_string() == current_user.id)
+            .any(|m| m.person_id.to_raw_string() == current_user.id)
         {
             return Err(Error::Unauthorized);
         }
@@ -645,9 +646,9 @@ pub async fn create_kit(
 
     let kit = EquipmentModel::create_kit(data).await?;
 
-    info!("Kit created: {}", kit.id);
+    info!("Kit created: {}", kit.id.display());
 
-    Ok(Redirect::to(&format!("/equipment/kit/{}", kit.id)).into_response())
+    Ok(Redirect::to(&format!("/equipment/kit/{}", kit.id.display())).into_response())
 }
 
 pub async fn show_kit_detail(Path(id): Path<String>, request: Request) -> Result<Response, Error> {
@@ -664,14 +665,14 @@ pub async fn show_kit_detail(Path(id): Path<String>, request: Request) -> Result
         if kit.owner_type == "person" {
             kit.owner_person
                 .as_ref()
-                .map_or(false, |p| p.to_string() == user.id)
+                .map_or(false, |p| p.to_raw_string() == user.id)
         } else if let Some(org_id) = kit.owner_organization.as_ref() {
             let org_model = OrganizationModel::new();
             let members = org_model
-                .get_members(&org_id.to_string())
+                .get_members(&org_id.to_raw_string())
                 .await
                 .unwrap_or_default();
-            members.iter().any(|m| m.person_id.to_string() == user.id)
+            members.iter().any(|m| m.person_id.to_raw_string() == user.id)
         } else {
             false
         }
@@ -780,7 +781,7 @@ pub async fn checkout_equipment_post(
 
     let rental = EquipmentModel::checkout_equipment(data).await?;
 
-    info!("Equipment checked out - rental: {}", rental.id);
+    info!("Equipment checked out - rental: {}", rental.id.display());
 
     // Redirect to equipment or kit detail page
     if let Some(ref eq_id) = form.equipment_id {
@@ -833,13 +834,13 @@ pub async fn checkin_equipment_post(
 
     let rental = EquipmentModel::checkin_equipment(&rental_id, data).await?;
 
-    info!("Equipment checked in - rental: {}", rental.id);
+    info!("Equipment checked in - rental: {}", rental.id.display());
 
     // Redirect to equipment or kit detail page
     if let Some(ref eq_id) = rental.equipment_id {
-        Ok(Redirect::to(&format!("/equipment/{}", eq_id)).into_response())
+        Ok(Redirect::to(&format!("/equipment/{}", eq_id.display())).into_response())
     } else if let Some(ref kit_id) = rental.kit_id {
-        Ok(Redirect::to(&format!("/equipment/kit/{}", kit_id)).into_response())
+        Ok(Redirect::to(&format!("/equipment/kit/{}", kit_id.display())).into_response())
     } else {
         Ok(Redirect::to("/equipment").into_response())
     }
